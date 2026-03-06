@@ -9,3 +9,4 @@ services:
     volumes:
       - ./config:/etc/headscale
       - ./headscale_data:/var/lib/headscale
+      - ./headscale_run:/var/run/headscale

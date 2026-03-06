@@ -52,3 +52,5 @@ headscale preauthkeys create -e 365d --reusable
 
 El comando devolverá un hash largo. Ese hash es el valor exacto que va en la variable TS_AUTHKEY del .env de todos tus nodos de almacenamiento.
 
+
+

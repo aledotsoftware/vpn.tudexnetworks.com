@@ -3,7 +3,8 @@ services:
     image: headscale/headscale:latest
     container_name: headscale_control
     restart: always
-    command: sleep infinity
+    entrypoint: sleep
+    command: infinity
     ports:
       - "8080:8080"
     volumes:

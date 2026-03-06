@@ -3,7 +3,7 @@ services:
     image: headscale/headscale:latest-debug
     container_name: headscale_control
     restart: always
-    command: serve
+    command: serve -c /etc/headscale/config.yaml
     ports:
       - "8080:8080"
     volumes:

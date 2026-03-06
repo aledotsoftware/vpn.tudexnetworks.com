@@ -1,6 +1,6 @@
 services:
   headscale:
-    image: headscale/headscale:latest
+    image: headscale/headscale:latest-debug
     container_name: headscale_control
     restart: always
     command: serve

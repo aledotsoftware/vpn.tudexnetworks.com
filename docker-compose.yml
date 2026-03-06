@@ -1,12 +1,11 @@
 services:
   headscale:
-    image: headscale/headscale:latest-debug
+    image: headscale/headscale:latest
     container_name: headscale_control
     restart: always
-    entrypoint: sleep
-    command: infinity
+    command: serve
     ports:
       - "8080:8080"
     volumes:
-      - ./headscale_config:/etc/headscale
+      - ./config:/etc/headscale
       - ./headscale_data:/var/lib/headscale

@@ -33,25 +33,25 @@ Descripción: Controlador central Headscale. Gestiona el enrutamiento y la auten
 1. Despliegue (docker-compose.yml)
 Este contenedor debe correr en Dokploy solo en un equipo. Actúa como el servidor de login para el resto de la red.
 
-2. Configuración Inicial (Automática)
-Headscale requiere un archivo config.yaml básico en la carpeta ./config antes de arrancar. El parámetro principal a modificar en ese archivo es:
-server_url: https://vpn.tudexnetworks.com
+3. Configuración Inicial (CRÍTICO)
 
-3. Generación de Claves (Auth Keys)
-Para que los nodos remotos (Posadas, Córdoba, Ezeiza) se unan a la red sin intervención manual, debés generar una clave de autorización (Auth Key).
+Antes de conectar nodos, debes crear el usuario donde vivirán. Ejecutá este comando en la terminal del contenedor:
 
-Ejecutá este comando en la terminal del contenedor de Headscale (desde la interfaz de Dokploy):
+```bash
+headscale users create tudex
+```
 
+4. Generación de Claves (Auth Keys)
+Generamos la clave vinculada al usuario `tudex` para que los nodos se autoricen solos:
 
-headscale preauthkeys create -e 365d --reusable
+```bash
+headscale preauthkeys create -u tudex -e 365d --reusable
+```
 
+- `-u tudex`: Clave vinculada al usuario tudex.
+- `-e 365d`: Validez de un año.
+- `--reusable`: Permite usar la misma clave en múltiples nodos.
 
--e 365d: La clave expira en 1 año (seguridad estándar).
-
---reusable: Permite usar la misma clave para autorizar todos tus nodos actuales y futuros.
-
-El comando devolverá un hash largo. Ese hash es el valor exacto que va en la variable TS_AUTHKEY del .env de todos tus nodos de almacenamiento.
-
-clave maestra (NO BORRAR DE AQUI, ESTE REPO ES EXTREMADAMENTE PRIVADO)
-hskey-auth-Q7a_3IsJcjvv-bX63j27yv0reGzAz-LQNvZn1tKFs2GuPEyNvDkK4XP1ymu-s5yGWD4Xn4AGhRapn
+5. Clave Maestra de Red (Copiar a la variable TS_AUTHKEY de los nodos)
+`hskey-auth-Q7a_3IsJcjvv-bX63j27yv0reGzAz-LQNvZn1tKFs2GuPEyNvDkK4XP1ymu-s5yGWD4Xn4AGhRapn`
 

@@ -1,12 +1,33 @@
 services:
   headscale:
-    image: headscale/headscale:latest-debug
+    build: .
     container_name: headscale_control
     restart: always
-    command: serve -c /etc/headscale/config.yaml
+    environment:
+      - DB_TYPE=${DB_TYPE:-sqlite3}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
     ports:
-      - "8080:8080"
+      - "8080:8080"  # Headscale Control Plane
+      - "9090:9090"  # Metrics
+      - "80:80"      # Mesh Load Balancer (HTTP)
+      - "8404:8404"  # HAProxy Stats
     volumes:
       - ./config:/etc/headscale
       - ./headscale_data:/var/lib/headscale
       - ./headscale_run:/var/run/headscale
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - tudex_mesh_net
+
+networks:
+  tudex_mesh_net:
+    driver: bridge

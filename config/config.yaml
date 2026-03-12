@@ -1,25 +1,101 @@
+# ============================================================
+# Headscale — Configuración de Producción
+# Proyecto: vpn.tudexnetworks.com
+# Nodo: mesh-sao-txn-01
+#
+# FLUJO ZERO-CONFIG:
+#   Los nodos nuevos leen TS_LOGIN_SERVER=https://vpn.tudexnetworks.com
+#   y TS_AUTHKEY=hskey-auth-... en su .env, y se unen automáticamente
+#   a la red sin ninguna intervención manual.
+# ============================================================
+
+# URL pública del servidor Headscale.
+# Este valor es el que los nodos usan como TS_LOGIN_SERVER en su .env
 server_url: https://vpn.tudexnetworks.com
+
+# Dirección de escucha interna del servidor HTTP
 listen_addr: 0.0.0.0:8080
-metrics_listen_addr: 127.0.0.1:9090
+
+# Métricas Prometheus (solo acceso interno, no exponer a internet)
+metrics_listen_addr: 0.0.0.0:9090
+
+# gRPC (para CLI headscale via socket Unix — no exponer a internet)
 grpc_listen_addr: 127.0.0.1:50443
 grpc_allow_insecure: true
+
+# Socket Unix para comunicación local con el CLI de headscale
 unix_socket: /var/run/headscale/headscale.sock
 unix_socket_permission: "0770"
+
+# ============================================================
+# Claves Privadas
+# ============================================================
 private_key_path: /var/lib/headscale/private.key
+
 noise:
   private_key_path: /var/lib/headscale/noise_private.key
+
+# ============================================================
+# Rangos de IP de la red Mesh (100.x.x.x — estilo Tailscale)
+#
+# ZERO-CONFIG (Paso 3): Cuando un nodo se registra con su TS_AUTHKEY,
+# Headscale le asigna automáticamente una IP estática dentro de este
+# rango. La IP persiste entre reinicios del contenedor.
+# ============================================================
 prefixes:
   v4: 100.64.0.0/10
   v6: fd7a:115c:a1e0::/48
+  allocation: sequential   # Los nodos reciben IPs en orden secuencial (100.64.0.1, .2, .3...)
+
+# ============================================================
+# DERP — Relay de tráfico encriptado (WireGuard)
+#
+# ZERO-CONFIG (Cifrado E2E): El tráfico entre nodos viaja encriptado
+# punto a punto. El DERP actúa como relay de último recurso cuando
+# no hay conectividad directa entre dos nodos (NAT estricto).
+# No usamos servidor DERP propio; usamos la red global de Tailscale.
+# ============================================================
 derp:
   server:
     enabled: false
   urls:
     - https://controlplane.tailscale.com/derpmap/default
+  auto_update_enabled: true
+  update_frequency: 24h
+
+# ============================================================
+# Base de datos (SQLite por defecto / Postgres para HA)
+#
+# ZERO-CONFIG (HA): Para tener varias instancias de este contenedor,
+# cambia el tipo a 'postgres' y rellena los datos de conexión abajo.
+# Todas las instancias DEBEN apuntar a la misma base de datos.
+# ============================================================
 database:
-  type: sqlite3
+  type: ${DB_TYPE:-sqlite3}
   sqlite:
     path: /var/lib/headscale/db.sqlite
+  postgres:
+    host: ${DB_HOST:-}
+    port: ${DB_PORT:-5432}
+    name: ${DB_NAME:-}
+    user: ${DB_USER:-}
+    pass: ${DB_PASS:-}
+    ssl: ${DB_SSL:-true}
+
+# ============================================================
+# MagicDNS — Resolución automática de hostnames internos
+#
+# ZERO-CONFIG (Paso 4): Al unirse a la red, cada nodo recibe
+# automáticamente un hostname resolvible por toda la red:
+#   {nombre-del-dispositivo}.vpn.internal → 100.64.x.x
+#
+# Ejemplo:
+#   cdn-sao-01        → cdn-sao-01.vpn.internal      → 100.64.0.1
+#   core-mesh-txn-01  → core-mesh-txn-01.vpn.internal → 100.64.0.2
+#   haproxy-gw        → haproxy-gw.vpn.internal        → 100.64.0.3
+#
+# HAProxy y otros servicios pueden usar estos nombres en lugar de IPs.
+# ============================================================
 dns:
   magic_dns: true
   base_domain: vpn.internal
@@ -28,3 +104,21 @@ dns:
       - 1.1.1.1
       - 1.0.0.1
       - 8.8.8.8
+  override_local_dns: false
+
+# ============================================================
+# Políticas de ACL (opcional — sin restricciones por defecto)
+# Para agregar ACLs, crear un policy.hujson y referenciar aquí:
+# acls_policy_path: /etc/headscale/policy.hujson
+# ============================================================
+
+# ============================================================
+# Logging
+# ============================================================
+log:
+  level: info    # Options: trace, debug, info, warn, error
+
+# ============================================================
+# Timeout de clientes inactivos
+# ============================================================
+node_update_check_interval: 10s

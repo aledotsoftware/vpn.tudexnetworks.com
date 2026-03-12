@@ -1,0 +1,11 @@
+# Directorios generados en runtime por Headscale (NO commitear)
+headscale_data/
+headscale_run/
+
+# Variables de entorno locales
+.env
+.env.local
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db

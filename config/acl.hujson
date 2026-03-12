@@ -1,0 +1,36 @@
+{
+  // ============================================================
+  // TUDEX NETWORKS - POLÍTICAS DE ACCESO (ACL)
+  // ============================================================
+  
+  // Por defecto, permitimos que todos los nodos hablen entre sí.
+  // Puedes restringir el tráfico aquí definiendo grupos y reglas.
+  
+  "groups": {
+    "group:admin": ["tudex"],
+    "group:cdn": ["tudex"]
+  },
+
+  "hosts": {
+    "core-mesh": "100.64.0.1",
+    "cdn-mesh": "100.64.0.0/24"
+  },
+
+  "acls": [
+    // Permitir acceso total dentro de la red privada "tudex"
+    {
+      "action": "accept",
+      "src": ["*"],
+      "dest": ["*:*"]
+    }
+  ],
+
+  "ssh": [
+    {
+      "action": "accept",
+      "src": ["group:admin"],
+      "dst": ["*"],
+      "users": ["root", "admin"]
+    }
+  ]
+}

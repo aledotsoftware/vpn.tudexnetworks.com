@@ -3,10 +3,10 @@ services:
   mysql_cluster:
     image: mariadb:latest
     environment:
-      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=headscale
-      - MYSQL_USER=tudex
-      - MYSQL_PASSWORD=tudex
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
@@ -33,8 +33,8 @@ services:
       - DB_HOST=mysql_cluster
       - DB_PORT=3306
       - DB_NAME=headscale
-      - DB_USER=tudex
-      - DB_PASS=tudex
+      - DB_USER=${MYSQL_USER}
+      - DB_PASS=${MYSQL_PASSWORD}
     ports:
       - "8081:80"      # Dashboard y Balanceo (Cambiado de 80 a 8081 para Windows)
       - "8080:8080"    # Headscale API

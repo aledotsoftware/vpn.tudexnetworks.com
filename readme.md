@@ -1,70 +1,62 @@
-# TUDEX MESH GATEWAY 🚀
+# 🌐 TUDEX MESH CONTROL SYSTEM
 
-Solución de conectividad Zero-Trust de alto rendimiento para **Tudex Networks**. Este gateway orquestra una red mesh autogestionada mediante **Headscale** y proporciona balanceo de carga inteligente con **HAProxy**, integrando un panel de control premium para monitorización en tiempo real.
-
-## 🌟 Características Principales
-- **Zero-Config HA:** Sincronización automática de identidad del cluster (claves maestras) mediante MySQL.
-- **Mesh Load Balancing:** HAProxy resuelve nodos dinámicamente mediante el MagicDNS interno.
-- **Premium Dashboard:** Monitorización visual de nodos, tráfico y salud del cluster con estética glassmorphism.
-- **Soberanía de Datos:** Control total de las claves WireGuard y la infraestructura de red.
+Solución de infraestructura de red definida por software (SDN) de nivel industrial para **Tudex Networks**. Este ecosistema orquesta una red mesh segura, resiliente y de alta disponibilidad, integrando control de tráfico inteligente y monitorización avanzada.
 
 ---
 
-## 🚦 1. Despliegue Local (Pruebas)
+## 🏗️ Arquitectura del Ecosistema
 
-Para correr el entorno de desarrollo y ver el dashboard en tu Windows:
+El sistema Tudex Mesh se basa en tres pilares fundamentales:
+1.  **Control Plane (Headscale):** El cerebro de la red que gestiona identidades, llaves WireGuard y MagicDNS.
+2.  **Edge Routing (HAProxy + Traefik):** La puerta de entrada inteligente que rutea tráfico público hacia servicios privados de la mesh basados en subdominios.
+3.  **Data Persistence (External MySQL):** Sincronización global de secretos, auditoría y métricas en servidores persistentes (Hostinger).
 
+---
+
+## 🚦 Guía de Despliegue Rápido
+
+### A. Laboratorio de Alta Disponibilidad (Local)
+Para testear el cluster balanceado con 2 Gateways y 2 Nodos Satélites en tu máquina:
 ```bash
-docker-compose -f docker-compose.local.yml up --build -d
+docker-compose -f docker-compose.lab.yml up --build -d
 ```
+- **Panel Alfa:** [http://localhost:8081/dashboard](http://localhost:8081/dashboard)
+- **Panel Beta:** [http://localhost:8181/dashboard](http://localhost:8181/dashboard)
+- **Base de Datos:** Conectada automáticamente a `srv1659.hstgr.io`.
 
-### URLs Locales:
-- **Dashboard:** [http://localhost:8081/dashboard](http://localhost:8081/dashboard)
-- **HAProxy Stats:** [http://localhost:8404/stats](http://localhost:8404/stats)
-
----
-
-## 📊 2. Tudex Mesh Dashboard
-
-El panel de control es 100% dinámico y permite visualizar el estado real de la red global:
-
-### Secciones:
-1. **Nodos de la Red:** Lista dinámica de servidores unidos, mostrando sus IPs internas (`100.64.x.x`), estado (Online/Offline) y última actividad.
-2. **Tráfico por Sitio:** Monitorización del volumen de peticiones que HAProxy está distribuyendo a través de la malla.
-3. **Cluster Health:** Estado de salud de los gateways públicos y sincronización de secretos.
+### B. Producción (Internet / Dokploy)
+El despliegue en la nube utiliza Traefik para la gestión de SSL y balanceo externo.
+1. Sube el código a tu repo de Dokploy.
+2. Configura las variables de entorno (`DB_HOST`, `DB_USER`, etc.) en el panel.
+3. Asegura la apertura de puertos en tu Firewall físico/Cloud.
 
 ---
 
-## 🛠️ 3. Unirse a la Red (Nodos Spokes)
+## 🔌 Puertos Requeridos (Firewall)
 
-Para que un servidor aparezca en el dashboard, debe unirse a la malla:
-
-1. **Obtener clave:** Ejecuta en el gateway: `headscale users create tudex && headscale preauthkeys create -u tudex`.
-2. **Configurar Nodo:** Usa las variables `TS_AUTHKEY` y `TS_LOGIN_SERVER` en el nodo cliente.
-
----
-
-## 💾 4. Capa de Datos y Persistencia
-
-El sistema utiliza un enfoque híbrido para máxima velocidad y confiabilidad:
-- **Estados de Sesión (SQLite):** Headscale maneja la base de datos de nodos localmente para latencia cero.
-- **Sincronización de Cluster (MySQL):** Los secretos vitales, auditoría y métricas se guardan en el "Cerebro Central" SQL.
-
-Consulta el esquema formal en: [database/schema.sql](file:///p:/vpn.tudexnetworks.com/database/schema.sql)
+| Puerto | Protocolo | Descripción |
+| :--- | :--- | :--- |
+| **80 / 443** | TCP | Tráfico Web (HTTP/HTTPS) y Dashboard |
+| **8080** | TCP | API de Control (Headscale) |
+| **8404** | TCP | Estadísticas de HAProxy (Real-time Telemetry) |
+| **41641** | **UDP** | **Túnel Wireguard Nativo (Crítico para rendimiento)** |
+| **3478** | UDP | Soporte STUN para atravesar NAT |
 
 ---
 
-## 🛡️ 5. Seguridad y Mantenimiento...
+## 🛠️ Gestión de Nodos Satélites
 
-- **Secretos:** Las claves `private.key` y `noise_private.key` se guardan en la tabla `headscale_secrets` de MySQL. Todos los gateways con la misma DB compartirán la misma identidad de red.
-- **ACLs:** Configura políticas de seguridad estrictas en `/config/acl.hujson`.
+Los nodos (como `now.tudexnetworks.com`) están diseñados para autoconectarse:
+1.  **Clave de Malla:** Al iniciar el Gateway, se genera una `SATELLITE_AUTH_KEY` que se guarda en MySQL.
+2.  **Inyección:** Los satélites leen esta clave (vía variable de entorno `VPN_AUTH_KEY`) y se unen a la red sin intervención manual.
+3.  **Exit Node:** El Gateway actúa como salida segura a internet para los nodos que tengan `USE_EXIT_NODE=true`.
 
+---
 
-los puertos del servidor físico que deben estar abiertos:
-- **TCP 80, 443:** Tráfico Web y SSL.
-- **TCP 8080:** API de Control Plane.
-- **TCP 8404:** Monitorización de HAProxy.
-- **UDP 41641:** Túnel Wireguard de la Mesh (Crítico).
-- **UDP 3478:** Servidor STUN (Opcional, ayuda a NAT).
+## 📄 Documentación Adicional
+- [Documentación Técnica Detallada](./DOCUMENTACION_TECNICA.md)
+- [Esquema de Base de Datos](./database/schema.sql)
+- [Políticas de Seguridad (ACLs)](./config/acl.hujson)
 
-*Tudex Networks - Engineered for Performance.*
+---
+*Tudex Networks - Engineered for Performance and Absolute Privacy.*

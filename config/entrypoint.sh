@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+# Configurar trap para salir limpiamente
+trap 'echo "🛑 Recibido SIGTERM/SIGINT. Saliendo..."; exit 0' TERM INT
+
 echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V21 - TOTAL RESILIENCE)"
 
 # 0. Asegurar dispositivo TUN
@@ -11,10 +14,28 @@ if [ ! -c /dev/net/tun ]; then
 fi
 
 # 1. Capa de Datos
-until mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" --silent; do
-  echo "⏳ [DB] Sincronizando con MariaDB Backbone..."
+MAX_RETRIES=30
+RETRY_COUNT=0
+DB_AVAILABLE=false
+
+echo "⏳ [DB] Sincronizando con MariaDB Backbone..."
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+  if mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" --silent; then
+    DB_AVAILABLE=true
+    break
+  fi
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  echo "⏳ [DB] Reintento $RETRY_COUNT/$MAX_RETRIES..."
   sleep 2
 done
+
+if [ "$DB_AVAILABLE" = "false" ]; then
+  echo "❌ [DB] Error crítico: No se pudo conectar a la base de datos después de $MAX_RETRIES intentos."
+  echo "⚠️ Saliendo del proceso de inicio. Verifica la configuración de la BD."
+  exit 1
+fi
+
+echo "✅ [DB] Conexión establecida."
 
 # Aplicar esquema oficial
 SCHEMA_FILE="/etc/headscale/database/schema.sql"
@@ -127,4 +148,3 @@ haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
 
 echo "🌐 TUDEX MESH: INFRAESTRUCTURA OPERATIVA"
 wait $HS_PID
-筋

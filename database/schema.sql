@@ -9,7 +9,7 @@
 -- compartir el mismo plano de control.
 CREATE TABLE IF NOT EXISTS headscale_secrets (
     key_name VARCHAR(64) PRIMARY KEY, -- 'private_key', 'noise_private_key', 'api_key'
-    key_content TEXT NOT NULL,
+    key_content TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL, -- Binary collation prevents case-folding corruption of secrets
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     description VARCHAR(255)
 );

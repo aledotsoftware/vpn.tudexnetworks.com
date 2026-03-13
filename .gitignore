@@ -9,3 +9,4 @@ headscale_run/
 # Archivos de sistema
 .DS_Store
 Thumbs.db
+node_modules/

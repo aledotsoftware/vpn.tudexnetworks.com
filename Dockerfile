@@ -1,22 +1,26 @@
-# Usamos Alpine como base para tener un shell y gestor de paquetes
+# Etapa 1: Builder
+FROM alpine:3.19 AS builder
+RUN apk add --no-cache curl && \
+    curl -L https://github.com/juanfont/headscale/releases/download/v0.22.3/headscale_0.22.3_linux_amd64 -o /bin/headscale && \
+    chmod +x /bin/headscale
+
+# Etapa 2: Imagen Final
 FROM alpine:3.19
 
-# Instalamos Headscale, HAProxy y dependencias
-# Descargamos el binario oficial de Headscale (ajustado a la arquitectura)
-# Generamos directorios necesarios
 RUN apk add --no-cache \
     haproxy \
     mariadb-client \
     mariadb-connector-c \
     ca-certificates \
     curl \
-    wget \
     tailscale \
     iptables \
+    xxd \
     ip6tables && \
-    curl -L https://github.com/juanfont/headscale/releases/download/v0.22.3/headscale_0.22.3_linux_amd64 -o /bin/headscale && \
-    chmod +x /bin/headscale && \
     mkdir -p /etc/headscale /var/lib/headscale /var/run/headscale /usr/local/etc/haproxy
+
+# Copiar el binario desde la etapa builder
+COPY --from=builder /bin/headscale /bin/headscale
 
 # Copiamos configuraciones
 COPY ./config/entrypoint.sh /entrypoint.sh

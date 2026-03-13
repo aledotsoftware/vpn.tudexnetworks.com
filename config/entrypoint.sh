@@ -2,7 +2,7 @@
 set -e
 
 # Configurar trap para salir limpiamente
-trap 'echo "🛑 Recibido SIGTERM/SIGINT. Saliendo..."; exit 0' TERM INT
+trap 'echo "🛑 Recibido SIGTERM/SIGINT. Saliendo..."; kill $(jobs -p) 2>/dev/null; exit 0' TERM INT
 
 echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V21 - TOTAL RESILIENCE)"
 
@@ -20,7 +20,7 @@ DB_AVAILABLE=false
 
 echo "⏳ [DB] Sincronizando con MariaDB Backbone..."
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-  if mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" --silent; then
+  if timeout 5 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" --silent; then
     DB_AVAILABLE=true
     break
   fi

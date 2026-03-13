@@ -16,12 +16,13 @@ jobs:
         run: shellcheck config/entrypoint.sh
 
       - name: Validate HAProxy Config
-        # Using haproxy alpine image directly to validate the config file
         run: |
-          # Create placeholder for dashboard.html that haproxy checks
-          mkdir -p /tmp/etc/headscale
-          touch /tmp/etc/headscale/dashboard.html
-          docker run --rm -v $(pwd)/config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro -v /tmp/etc/headscale/dashboard.html:/etc/headscale/dashboard.html:ro -v $(pwd)/config/errors:/etc/headscale/errors:ro haproxy:alpine haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg
+          sudo apt-get update
+          sudo apt-get install -y haproxy
+          sudo mkdir -p /etc/headscale/errors
+          sudo cp -r config/errors/* /etc/headscale/errors/ || true
+          sudo touch /etc/headscale/dashboard.html
+          haproxy -c -f config/haproxy.cfg
 
       - name: Validate Docker Compose
         run: docker compose config -q

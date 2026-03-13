@@ -25,8 +25,6 @@ COPY ./config/config.yaml /etc/headscale/config.yaml
 COPY ./config/dashboard.html /etc/headscale/dashboard.html
 COPY ./database/schema.sql /etc/headscale/database/schema.sql
 
-RUN chmod +x /entrypoint.sh
-
 # Puertos
 EXPOSE 80 443 8080 9090 8404
 

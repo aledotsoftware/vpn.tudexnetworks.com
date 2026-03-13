@@ -14,22 +14,39 @@ fi
 
 # 2. HAProxy config check
 echo "⚖️ [TEST] Validando sintaxis de HAProxy..."
-mkdir -p /tmp/etc/headscale
+
+mkdir -p /tmp/etc/headscale/errors
+cp config/errors/* /tmp/etc/headscale/errors/ 2>/dev/null || true
 touch /tmp/etc/headscale/dashboard.html
-if docker run --rm \
-    -v "$(pwd)/config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro" \
-    -v "/tmp/etc/headscale/dashboard.html:/etc/headscale/dashboard.html:ro" \
-    -v "$(pwd)/config/errors:/etc/headscale/errors:ro" \
-    haproxy:alpine haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg &> /dev/null; then
-    echo "✅ [TEST] HAProxy config correcta."
+
+if command -v haproxy &> /dev/null; then
+    # Create a temporary config that points to /tmp instead of /etc for the local syntax check
+    sed 's|/etc/headscale|/tmp/etc/headscale|g' config/haproxy.cfg > /tmp/haproxy_test.cfg
+
+    if haproxy -c -f /tmp/haproxy_test.cfg &> /dev/null; then
+        echo "✅ [TEST] HAProxy config correcta."
+    else
+        echo "❌ [TEST] Error en HAProxy config."
+        haproxy -c -f /tmp/haproxy_test.cfg
+        exit 1
+    fi
 else
-    echo "❌ [TEST] Error en HAProxy config."
-    docker run --rm \
+    echo "⚠️ [TEST] haproxy no encontrado localmente, intentando usar docker..."
+    if docker run --rm \
         -v "$(pwd)/config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro" \
         -v "/tmp/etc/headscale/dashboard.html:/etc/headscale/dashboard.html:ro" \
         -v "$(pwd)/config/errors:/etc/headscale/errors:ro" \
-        haproxy:alpine haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg
-    exit 1
+        haproxy:alpine haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg &> /dev/null; then
+        echo "✅ [TEST] HAProxy config correcta."
+    else
+        echo "❌ [TEST] Error en HAProxy config."
+        docker run --rm \
+            -v "$(pwd)/config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro" \
+            -v "/tmp/etc/headscale/dashboard.html:/etc/headscale/dashboard.html:ro" \
+            -v "$(pwd)/config/errors:/etc/headscale/errors:ro" \
+            haproxy:alpine haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg || true
+        exit 1
+    fi
 fi
 
 # 3. Docker Compose config

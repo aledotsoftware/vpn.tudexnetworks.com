@@ -16,7 +16,7 @@ services:
       - DB_PORT=3306
       - DB_NAME=u487445196_tudex_db
       - DB_USER=u487445196_tudex_db
-      - DB_PASS=5jt1RhVb~I$$h # Escapado para Docker-Compose
+      - DB_PASS=${DB_PASS}
     ports:
       - "8081:80"
       - "8080:8080"
@@ -41,7 +41,7 @@ services:
       - DB_PORT=3306
       - DB_NAME=u487445196_tudex_db
       - DB_USER=u487445196_tudex_db
-      - DB_PASS=5jt1RhVb~I$$h
+      - DB_PASS=${DB_PASS}
     ports:
       - "8181:80"
       - "8180:8080"
@@ -63,7 +63,7 @@ services:
     environment:
       - NODE_NAME=local-node-01
       - VPN_SERVER_URL=http://gateway-alfa:8080
-      - VPN_AUTH_KEY=48a99affba1f7e45ca2128a2c3cc31b027ca223afad00342
+      - VPN_AUTH_KEY=${VPN_AUTH_KEY}
     networks:
       - default
 
@@ -81,7 +81,7 @@ services:
     environment:
       - NODE_NAME=local-node-02
       - VPN_SERVER_URL=http://gateway-alfa:8080
-      - VPN_AUTH_KEY=48a99affba1f7e45ca2128a2c3cc31b027ca223afad00342
+      - VPN_AUTH_KEY=${VPN_AUTH_KEY}
     networks:
       - default
 

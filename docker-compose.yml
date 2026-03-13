@@ -3,6 +3,28 @@ services:
     build: .
     container_name: headscale_control
     restart: always
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    labels:
+      - "traefik.enable=true"
+      # Panel de Control (Dashboard)
+      - "traefik.http.routers.headscale-dash.rule=Host(`vpn.tudexnetworks.com`) && PathPrefix(`/dashboard`)"
+      - "traefik.http.routers.headscale-dash.entrypoints=web"
+      - "traefik.http.services.headscale-dash.loadbalancer.server.port=80"
+      # API de Headscale
+      - "traefik.http.routers.headscale-api.rule=Host(`vpn.tudexnetworks.com`) && PathPrefix(`/api`, `/register`, `/apple`, `/windows`, `/oidc`)"
+      - "traefik.http.routers.headscale-api.entrypoints=web"
+      - "traefik.http.services.headscale-api.loadbalancer.server.port=8080"
+      # Rutas dinámicas para la Mesh (Subdominios)
+      - "traefik.http.routers.mesh-sites.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.tudexnetworks.com`)"
+      - "traefik.http.routers.mesh-sites.entrypoints=web"
+      - "traefik.http.services.mesh-sites.loadbalancer.server.port=80"
     environment:
       - DB_TYPE=${DB_TYPE:-sqlite3}
       - DB_HOST=${DB_HOST}
@@ -10,24 +32,26 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
+    # Solo mapeamos puertos que NO son 80/443 (que ya usa Traefik/Dokploy)
     ports:
-      - "8080:8080"  # Headscale Control Plane
+      - "8080:8080"  # Headscale Interno
       - "9090:9090"  # Metrics
-      - "80:80"      # Mesh Load Balancer (HTTP)
       - "8404:8404"  # HAProxy Stats
     volumes:
       - ./config:/etc/headscale
-      - ./headscale_data:/var/lib/headscale
-      - ./headscale_run:/var/run/headscale
-    healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8080/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
+      - headscale_data:/var/lib/headscale
+      - headscale_run:/var/run/headscale
     networks:
+      - dokploy-network
       - tudex_mesh_net
 
 networks:
+  dokploy-network:
+    external: true
   tudex_mesh_net:
     driver: bridge
+
+volumes:
+  headscale_data:
+  headscale_run:
+

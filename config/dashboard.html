@@ -96,9 +96,20 @@
         <div class="panel">
             <div class="panel-title">🛡️ INVENTARIO DE MÁQUINAS (PROD)</div>
             <table id="node-table">
-                <thead><tr><th>Node</th><th>IP</th><th>OS</th><th>Namespce</th><th>Status</th></tr></thead>
+                <thead><tr><th>Node</th><th>IP</th><th>OS</th><th>Namespace</th><th>Status</th></tr></thead>
                 <tbody id="node-list"></tbody>
             </table>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">🔑 CLAVES DE ACCESO ACTIVAS (MESH KEYS)</div>
+            <table>
+                <thead><tr><th>Llave</th><th>Usuario</th><th>Tipo</th><th>Vencimiento</th></tr></thead>
+                <tbody id="key-list">
+                    <tr><td colspan="4" style="font-family: monospace; font-size: 11px; opacity: 0.7;">%%ACTIVE_KEYS%%</td></tr>
+                </tbody>
+            </table>
+            <p style="font-size: 10px; color: var(--text-dim); margin-top: 10px;">ℹ️ Usa estas llaves con <code>tailscale up --authkey</code> para unir nuevos contenedores.</p>
         </div>
 
         <div class="panel">

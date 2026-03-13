@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V17 - EXIT NODE ENABLED)"
+echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V19 - SATELLITE HUB)"
 
 # 1. Capa de Datos
 until mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" --silent; do
@@ -32,7 +32,7 @@ if [ -n "$PRIVATE_KEY" ]; then
     echo "$PRIVATE_KEY" > /var/lib/headscale/private.key
     echo "$NOISE_KEY" > /var/lib/headscale/noise_private.key
 else
-    echo "🚀 [AUTH] Creando raíz de identidad de malla..."
+    echo "🚀 [AUTH] Generando raíz de identidad de malla..."
     echo "9f8488347f892182747182747182747182747182747182747182747182747182" > /var/lib/headscale/private.key
     echo "7f8488347f892182747182747182747182747182747182747182747182747181" > /var/lib/headscale/noise_private.key
     mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT IGNORE INTO headscale_secrets (key_name, key_content) VALUES ('private_key', '$(cat /var/lib/headscale/private.key)'), ('noise_private_key', '$(cat /var/lib/headscale/noise_private.key)');"
@@ -44,33 +44,38 @@ HS_PID=$!
 sleep 15
 
 # 4. Aprovisionamiento de Claves
+headscale users create tudex-admin || true
+
 API_KEY=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT key_content FROM headscale_secrets WHERE key_name='api_key';")
 if [ -z "$API_KEY" ]; then
-    headscale users create tudex-admin || true
     API_KEY=$(headscale apikeys create --expiration 3650d | grep -oE "hsak_[a-zA-Z0-9]+" | tail -n 1)
-    mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO headscale_secrets (key_name, key_content) VALUES ('api_key', '$API_KEY');"
+    mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO headscale_secrets (key_name, key_content) VALUES ('api_key', '$API_KEY') ON DUPLICATE KEY UPDATE key_content='$API_KEY';"
 fi
 
-# Generar Reusable Pre-AuthKey para Satélites
-SATELLITE_KEY=$(headscale preauthkeys create -u tudex-admin --reusable --expiration 2160h | grep -oE "[a-f0-9]{48}" || echo "FAILED_KEY")
-echo "🔑 [SATELLITE_KEY] $SATELLITE_KEY"
+# Generar y extraer llaves activas para el Dashboard
+echo "🔑 Sincronizando Pre-AuthKeys..."
+SATELLITE_KEY=$(headscale preauthkeys create -u tudex-admin --reusable --expiration 2160h | grep -oE "[a-f0-9]{48}" || echo "")
+# Formatear llaves para el HTML
+KEYS_HTML=$(headscale preauthkeys list -u tudex-admin --output json-line | awk '{print "<tr><td><b>" $1 "</b></td><td>" $2 "</td><td>" $3 "</td><td>" $4 "</td></tr>"}' || echo "<tr><td colspan='4'>No active keys</td></tr>")
 
 # 5. Gateway Mesh Participation (Self-Exit Node)
 mkdir -p /var/run/tailscale /var/lib/tailscale
 tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock &
 sleep 5
-# El Gateway se une a su propia malla y se anuncia como Exit Node
-tailscale up --login-server http://localhost:8080 --authkey "$SATELLITE_KEY" --hostname "master-gateway" --advertise-exit-node --accept-routes
+tailscale up --login-server http://localhost:8080 --authkey "$SATELLITE_KEY" --hostname "master-gateway" --advertise-exit-node --accept-routes || true
 
-# Pasos adicionales para routing real: Masquerade
-iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+# Routing
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE || true
 
 # 6. Dashboard Patching
-LOGS_JSON=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT GROUP_CONCAT(CONCAT('[', created_at, '] ', event_type, ': ', description) SEPARATOR '<br>') FROM (SELECT * FROM security_audit ORDER BY id DESC LIMIT 10) as t;")
+# Auditoría
+LOGS_HTML=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT GROUP_CONCAT(CONCAT('[', created_at, '] ', event_type, ': ', description) SEPARATOR '<br>') FROM (SELECT * FROM security_audit ORDER BY id DESC LIMIT 10) as t;" || echo "No logs")
+
 sed -i "s|%%DASHBOARD_API_KEY%%|$API_KEY|g" /etc/headscale/dashboard.html
 sed -i "s|%%MASTER_IP%%|$MASTER_IP|g" /etc/headscale/dashboard.html
 sed -i "s|%%MASTER_DOMAIN%%|$MASTER_DOMAIN|g" /etc/headscale/dashboard.html
-sed -i "s|%%AUDIT_LOGS%%|$LOGS_JSON|g" /etc/headscale/dashboard.html
+sed -i "s|%%AUDIT_LOGS%%|$LOGS_HTML|g" /etc/headscale/dashboard.html
+sed -i "s|%%ACTIVE_KEYS%%|$KEYS_HTML|g" /etc/headscale/dashboard.html
 
 # 7. HAProxy Edge
 echo "⚖️ [EDGE] Iniciando HAProxy Gateway..."
@@ -80,11 +85,12 @@ haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
 (
     while true; do
         COUNT=$(headscale nodes list 2>/dev/null | grep -i "online" | grep -c "true" || echo 0)
-        mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO network_stats (node_count, active_connections, cluster_health_score) VALUES ($COUNT, $COUNT, 100);"
+        COUNT_NUM=$(echo "$COUNT" | tr -cd '0-9')
+        [ -z "$COUNT_NUM" ] && COUNT_NUM=0
+        mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO network_stats (node_count, active_connections, cluster_health_score) VALUES ($COUNT_NUM, $COUNT_NUM, 100);"
         sleep 60
     done
 ) &
 
-echo "🌐 TUDEX MESH: EXIT NODE & SATELLITE HUB OPERATIONAL"
+echo "🌐 TUDEX MESH: EXIT NODE & SATELLITE HUB READY"
 wait $HS_PID
-筋

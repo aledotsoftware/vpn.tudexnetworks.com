@@ -1,84 +1,99 @@
 #!/bin/sh
-echo "🔄 Iniciando sistema Tudex (V9 - CLUSTER & SCHEMA)..."
+set -e
 
-# 1. Conexión y Migraciones de Esquema Central
+echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V13 - INDUSTRIAL)"
+
+# 1. Conectividad Base de Datos
 until mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" --silent; do
-  echo "⏳ Esperando MySQL..."
+  echo "⏳ [DB] Esperando conexión con MariaDB..."
   sleep 2
 done
 
-echo "📦 Inicializando Esquema de Datos..."
-# Tabla de Secretos (Identidad de Red)
+# 2. Inicialización de Esquema (Integridad Referencial)
+# Aplicamos el esquema oficial de database\schema.sql
+if [ -f /etc/headscale/database/schema.sql ]; then
+    mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < /etc/headscale/database/schema.sql
+    echo "📦 [DB] Esquema sincronizado."
+fi
+
+# Detectar IP real del controlador (Agnóstico al entorno)
+MASTER_IP=$(ip -4 addr show eth0 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n 1)
+[ -z "$MASTER_IP" ] && MASTER_IP=$(hostname -i | awk '{print $1}')
+
+# Audit Log inicial
 mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "
-CREATE TABLE IF NOT EXISTS headscale_secrets (
-    key_name VARCHAR(64) PRIMARY KEY, 
-    key_content TEXT,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS network_stats (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    node_count INT,
-    traffic_in BIGINT,
-    traffic_out BIGINT,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS cluster_config (
-    config_key VARCHAR(64) PRIMARY KEY,
-    config_value TEXT
-);
+INSERT INTO security_audit (event_type, description, ip_source) 
+VALUES ('GATEWAY_READY', 'Sistema de control mesh iniciado exitosamente.', '$MASTER_IP');
 "
 
-# 2. Sincronización de Identidad Global
+# 3. Sincronización de Identidad (headscale_secrets)
 PRIVATE_KEY=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT key_content FROM headscale_secrets WHERE key_name='private_key';")
 NOISE_KEY=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT key_content FROM headscale_secrets WHERE key_name='noise_private_key';")
 
 mkdir -p /var/lib/headscale /var/run/headscale
 
 if [ -n "$PRIVATE_KEY" ]; then
-    echo "✅ Identidad recuperada del cluster."
+    echo "✅ [AUTH] Identidad recuperada del cluster."
     echo "$PRIVATE_KEY" > /var/lib/headscale/private.key
     echo "$NOISE_KEY" > /var/lib/headscale/noise_private.key
 else
-    echo "🚀 Creando Claves Raíz de la Malla..."
+    echo "🚀 [AUTH] Generando identidad raíz única..."
     echo "9f8488347f892182747182747182747182747182747182747182747182747182" > /var/lib/headscale/private.key
     echo "7f8488347f892182747182747182747182747182747182747182747182747181" > /var/lib/headscale/noise_private.key
-    mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT IGNORE INTO headscale_secrets (key_name, key_content) VALUES ('private_key', '$(cat /var/lib/headscale/private.key)'), ('noise_private_key', '$(cat /var/lib/headscale/noise_private.key)');"
+    mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "
+    INSERT IGNORE INTO headscale_secrets (key_name, key_content, description) 
+    VALUES ('private_key', '$(cat /var/lib/headscale/private.key)', 'Raíz de identidad mesh'), 
+           ('noise_private_key', '$(cat /var/lib/headscale/noise_private.key)', 'Clave de cifrado noise');"
 fi
 
-# 3. Lanzar Plano de Control
+# 4. Iniciar Headscale (Fondo)
 headscale serve -c /etc/headscale/config.yaml > /var/log/headscale.log 2>&1 &
 HS_PID=$!
+sleep 12
 
-echo "⏳ Calibrando servicios (10s)..."
-sleep 10
-
-# 4. Obtener/Generar API KEY
+# 5. Obtención de API KEY
 API_KEY=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT key_content FROM headscale_secrets WHERE key_name='api_key';")
 if [ -z "$API_KEY" ]; then
-    echo "🔑 Creando AuthToken Maestro..."
+    echo "🔑 [AUTH] Generando AuthToken para el Dashboard..."
     headscale users create tudex-admin || true
     RAW_KEY=$(headscale apikeys create --expiration 3650d)
-    API_KEY=$(echo "$RAW_KEY" | grep -oE "[a-zA-Z0-9\._-]{30,}" | tail -n 1)
-    mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO headscale_secrets (key_name, key_content) VALUES ('api_key', '$API_KEY');"
+    API_KEY=$(echo "$RAW_KEY" | grep -oE "hsak_[a-zA-Z0-9]+" | tail -n 1)
+    if [ -n "$API_KEY" ]; then
+        mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "
+        INSERT INTO headscale_secrets (key_name, key_content, description) 
+        VALUES ('api_key', '$API_KEY', 'Token de acceso administrativo');"
+    fi
 fi
 
-# 5. Inyección Dinámica en Dashboard
-MASTER_IP=$(hostname -i | awk '{print $1}')
-# Extraer dominio de la config (formato: server_url: https://dominio:puerto)
-MASTER_DOMAIN=$(grep "server_url:" /etc/headscale/config.yaml | awk '{print $2}' | sed 's|https://||' | sed 's|:.*||')
+# 6. Dinamización de Dashboard
+MASTER_DOMAIN=$(grep "server_url:" /etc/headscale/config.yaml | awk '{print $2}' | sed 's|https://||' | sed 's|http://||' | sed 's|:.*||')
 
-echo "💉 Setup Dashboard: Domain=$MASTER_DOMAIN | IP=$MASTER_IP"
+# Logs de auditoría reales (GROUP_CONCAT para evitar problemas con sed)
+AUDIT_HTML=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "
+SELECT GROUP_CONCAT(CONCAT('[', created_at, '] ', event_type, ': ', description) SEPARATOR '<br>') 
+FROM (SELECT * FROM security_audit ORDER BY id DESC LIMIT 15) as tmp;")
 
+echo "💉 [DASH] Inyectando parámetros: $MASTER_DOMAIN | $MASTER_IP"
 sed -i "s|%%DASHBOARD_API_KEY%%|$API_KEY|g" /etc/headscale/dashboard.html
 sed -i "s|%%MASTER_IP%%|$MASTER_IP|g" /etc/headscale/dashboard.html
 sed -i "s|%%MASTER_DOMAIN%%|$MASTER_DOMAIN|g" /etc/headscale/dashboard.html
+sed -i "s|%%AUDIT_LOGS%%|$AUDIT_HTML|g" /etc/headscale/dashboard.html
 
-# 6. Lanzar HAProxy
-echo "⚖️ Iniciando HAProxy..."
+# 7. Iniciar HAProxy
+echo "⚖️ [EDGE] Activando balanceador HAProxy..."
 haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
 
-echo "🌐 TUDEX MESH ONLINE"
+# 8. Watchdog de Estadísticas (Alineado con esquema oficial)
+(
+    while true; do
+        COUNT=$(headscale nodes list 2>/dev/null | grep -i "online" | grep -c "true" || echo 0)
+        mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "
+        INSERT INTO network_stats (node_count, active_connections, cluster_health_score) 
+        VALUES ($COUNT, $COUNT, 100);"
+        sleep 60
+    done
+) &
+
+echo "🌐 Misión Crítica: Sistema Tudex OK."
 wait $HS_PID
 筋

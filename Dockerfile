@@ -23,6 +23,7 @@ COPY ./config/entrypoint.sh /entrypoint.sh
 COPY ./config/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 COPY ./config/config.yaml /etc/headscale/config.yaml
 COPY ./config/dashboard.html /etc/headscale/dashboard.html
+COPY ./database/schema.sql /etc/headscale/database/schema.sql
 
 RUN chmod +x /entrypoint.sh
 

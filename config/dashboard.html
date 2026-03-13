@@ -99,8 +99,8 @@
         </div>
         <div style="position: absolute; bottom: 25px; left: 25px;">
             <div style="font-size: 10px; color: var(--text-dim);">CONTROLLER</div>
-            <div style="font-weight: 600; color: var(--primary);">vpn.tudexnetworks.com</div>
-            <div style="font-size: 11px; opacity: 0.7;">172.23.0.3</div>
+            <div style="font-weight: 600; color: var(--primary);">%%MASTER_DOMAIN%%</div>
+            <div style="font-size: 11px; opacity: 0.7;">%%MASTER_IP%%</div>
         </div>
     </div>
 
@@ -159,7 +159,7 @@
             <table>
                 <thead><tr><th>Llave</th><th>Usuario</th><th>Tipo</th><th>Vencimiento</th></tr></thead>
                 <tbody id="key-list">
-                    <tr><td colspan="4" style="font-family: monospace; font-size: 11px; opacity: 0.7;"><tr><td><b>null</b></td><td></td><td></td><td></td></tr></td></tr>
+                    %%ACTIVE_KEYS%%
                 </tbody>
             </table>
             <p style="font-size: 10px; color: var(--text-dim); margin-top: 10px;">ℹ️ Usa estas llaves con <code>tailscale up --authkey</code> para unir nuevos contenedores.</p>
@@ -167,14 +167,14 @@
 
         <div class="panel">
             <div class="panel-title">📟 RECIENTES EVENTOS DE AUDITORÍA (MYSQL)</div>
-            <div id="log-console" class="log-console">[2026-03-13 03:45:00] GATEWAY_READY: Sistema de control mesh iniciado exitosamente.</div>
+            <div id="log-console" class="log-console">%%AUDIT_LOGS%%</div>
         </div>
     </div>
 
     <div id="toast-container" class="toast-container"></div>
 
     <script>
-        const API_KEY = "F1xjrntEnw.CISb7AjMcGLRSA0sIFPDo7OnmM2fz5x04yUjytPop6w";
+        const API_KEY = "%%DASHBOARD_API_KEY%%";
         const startTime = Date.now();
         let lastBytesIn = 0;
         let lastNodeHtml = "";

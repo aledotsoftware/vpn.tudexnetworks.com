@@ -93,6 +93,7 @@ if [ "$VALID_KEY" = "false" ]; then
     echo "🔄 [AUTH] Generando nueva API Key (la anterior no era válida)..."
     API_KEY=$(headscale apikeys create --expiration 3650d | grep -oE "[a-zA-Z0-9._-]+" | tail -n 1)
     mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO headscale_secrets (key_name, key_content) VALUES ('api_key', '$API_KEY') ON DUPLICATE KEY UPDATE key_content='$API_KEY';"
+    mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('KEY_ROTATION', 'Generación de nueva API Key de Dashboard', '$MASTER_IP');"
 fi
 
 # Satellite Pre-AuthKey
@@ -101,6 +102,7 @@ if [ -z "$SATELLITE_KEY" ]; then
     SATELLITE_KEY=$(headscale preauthkeys create -u tudex-admin --reusable --expiration 2160h | grep -oE "[a-f0-9]{48}" || echo "")
     if [ -n "$SATELLITE_KEY" ]; then
         mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO headscale_secrets (key_name, key_content) VALUES ('satellite_auth_key', '$SATELLITE_KEY') ON DUPLICATE KEY UPDATE key_content='$SATELLITE_KEY';"
+        mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('KEY_ROTATION', 'Generación de nueva llave de autenticación de satélites (AuthKey)', '$MASTER_IP');"
     fi
 fi
 

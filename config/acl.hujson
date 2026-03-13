@@ -17,11 +17,17 @@
   },
 
   "acls": [
-    // Permitir acceso total dentro de la red privada "tudex"
+    // Permitir a los administradores acceso total a toda la malla
     {
       "action": "accept",
-      "src": ["*"],
+      "src": ["group:admin"],
       "dest": ["*:*"]
+    },
+    // Permitir al grupo CDN acceso al rango cdn-mesh en puertos HTTP/HTTPS
+    {
+      "action": "accept",
+      "src": ["group:cdn"],
+      "dest": ["cdn-mesh:80", "cdn-mesh:443"]
     }
   ],
 

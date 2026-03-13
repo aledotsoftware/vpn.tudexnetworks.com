@@ -19,6 +19,7 @@ touch /tmp/etc/headscale/dashboard.html
 if docker run --rm \
     -v "$(pwd)/config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro" \
     -v "/tmp/etc/headscale/dashboard.html:/etc/headscale/dashboard.html:ro" \
+    -v "$(pwd)/config/errors:/etc/headscale/errors:ro" \
     haproxy:alpine haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg &> /dev/null; then
     echo "✅ [TEST] HAProxy config correcta."
 else
@@ -26,6 +27,7 @@ else
     docker run --rm \
         -v "$(pwd)/config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro" \
         -v "/tmp/etc/headscale/dashboard.html:/etc/headscale/dashboard.html:ro" \
+        -v "$(pwd)/config/errors:/etc/headscale/errors:ro" \
         haproxy:alpine haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg
     exit 1
 fi

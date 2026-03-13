@@ -47,6 +47,42 @@
         .toast.success { border-left-color: var(--success); }
         .toast.warning { border-left-color: var(--warning); }
 
+        /* Animations & Micro-interactions */
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); box-shadow: 0 0 10px rgba(34, 197, 94, 0.5); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .live-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: var(--success);
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 2s infinite ease-in-out;
+            box-shadow: 0 0 5px var(--success);
+        }
+
+        /* Glowing Border on Cards */
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 12px;
+            padding: 2px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.5), transparent, rgba(34, 197, 94, 0.5));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
         /* Custom Scrollbar for NOC feel */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
@@ -71,7 +107,9 @@
     <div class="main-content">
         <div class="header">
             <h1 style="font-size: 24px;">Mesh Operations Center</h1>
-            <div style="color: var(--success)">● LIVE TELEMETRY</div>
+            <div style="color: var(--success); display: flex; align-items: center; font-weight: 600; letter-spacing: 0.5px; font-size: 13px;">
+                <span class="live-dot"></span> LIVE TELEMETRY
+            </div>
         </div>
 
         <div class="grid-stats">
@@ -142,9 +180,22 @@
         let lastNodeHtml = "";
         let lastRegionHtml = "";
 
+        // ⚡ Bolt: Cache DOM elements to prevent repeated lookups in loops
+        const domEls = {
+            toastContainer: document.getElementById('toast-container'),
+            nodeCount: document.getElementById('node-count'),
+            nodeList: document.getElementById('node-list'),
+            regionList: document.getElementById('region-list'),
+            trafficIn: document.getElementById('traffic-in'),
+            activeReqs: document.getElementById('active-reqs'),
+            uptime: document.getElementById('uptime'),
+            trafficChart: document.getElementById('trafficChart'),
+            latencyChart: document.getElementById('latencyChart')
+        };
+
         // UI Helpers
         function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
+            const container = domEls.toastContainer;
             const toast = document.createElement('div');
             const icon = type === 'error' ? '⚠️' : type === 'warning' ? '⚡' : '✅';
             toast.className = `toast ${type}`;
@@ -165,7 +216,7 @@
         }
 
         // Chart Init
-        const ctx = document.getElementById('trafficChart').getContext('2d');
+        const ctx = domEls.trafficChart.getContext('2d');
         const gradient = ctx.createLinearGradient(0, 0, 0, 250);
         gradient.addColorStop(0, 'rgba(139, 92, 246, 0.5)');
         gradient.addColorStop(1, 'rgba(139, 92, 246, 0.01)');
@@ -177,7 +228,7 @@
         });
 
         // Latency Chart Init
-        const latCtx = document.getElementById('latencyChart').getContext('2d');
+        const latCtx = domEls.latencyChart.getContext('2d');
         const latencyChart = new Chart(latCtx, {
             type: 'bar',
             data: { labels: [], datasets: [{ label: 'Latency (ms)', data: [], backgroundColor: '#22c55e', borderRadius: 4 }] },
@@ -200,7 +251,9 @@
 
                 // 1. Process Headscale Nodes
                 const machines = hsData.machines || [];
-                document.getElementById('node-count').innerText = machines.length;
+                if (domEls.nodeCount.innerText !== String(machines.length)) {
+                    domEls.nodeCount.innerText = machines.length;
+                }
 
                 // ⚡ Bolt: Optimize DOM churn by comparing strings directly
                 const newNodeListHtml = machines.map(m => `
@@ -208,7 +261,7 @@
                 `).join('');
 
                 if (lastNodeHtml !== newNodeListHtml) {
-                    document.getElementById('node-list').innerHTML = newNodeListHtml;
+                    domEls.nodeList.innerHTML = newNodeListHtml;
                     lastNodeHtml = newNodeListHtml;
                 }
 
@@ -222,7 +275,7 @@
                 `).join('');
 
                 if (lastRegionHtml !== newRegionListHtml) {
-                    document.getElementById('region-list').innerHTML = newRegionListHtml;
+                    domEls.regionList.innerHTML = newRegionListHtml;
                     lastRegionHtml = newRegionListHtml;
                 }
 
@@ -239,8 +292,13 @@
                     const diff = lastBytesIn > 0 ? (currentBytes - lastBytesIn) / 5 : 0;
                     lastBytesIn = currentBytes;
                     
-                    document.getElementById('traffic-in').innerText = (currentBytes / 1024 / 1024).toFixed(2) + ' MB';
-                    document.getElementById('active-reqs').innerText = frontend.scur;
+                    const newTrafficIn = (currentBytes / 1024 / 1024).toFixed(2) + ' MB';
+                    if (domEls.trafficIn.innerText !== newTrafficIn) {
+                        domEls.trafficIn.innerText = newTrafficIn;
+                    }
+                    if (domEls.activeReqs.innerText !== String(frontend.scur)) {
+                        domEls.activeReqs.innerText = frontend.scur;
+                    }
                     
                     trafficChart.data.datasets[0].data.shift();
                     trafficChart.data.datasets[0].data.push(diff);
@@ -256,7 +314,10 @@
         setInterval(updateData, 5000);
         setInterval(() => {
             const up = Math.floor((Date.now() - startTime) / 1000);
-            document.getElementById('uptime').innerText = `${Math.floor(up/60)}m ${up%60}s`;
+            const newUptime = `${Math.floor(up/60)}m ${up%60}s`;
+            if (domEls.uptime.innerText !== newUptime) {
+                domEls.uptime.innerText = newUptime;
+            }
         }, 1000);
         updateData();
     </script>

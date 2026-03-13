@@ -1,3 +1,7 @@
 ## 2024-05-18 - [DOM Rendering Reflow Optimization in Vanilla JS Dashboard]
 **Learning:** [Continuously reassigning `element.innerHTML` in a `setInterval` loop (even with identical content) forces the browser to re-parse the HTML string, destroy existing DOM nodes, and recreate them, triggering unnecessary layouts, reflows, and repaints. This causes high CPU usage and degraded frame rates in long-running dashboards like the Tudex NOC Dashboard.]
 **Action:** [Before updating `innerHTML`, always store the newly generated HTML string and strictly compare it to the element's current `innerHTML` (e.g., `if (el.innerHTML !== newHtml) el.innerHTML = newHtml;`). This simple condition acts as a virtual DOM diffing mechanism for vanilla JS, significantly reducing DOM churn.]
+
+## 2024-05-25 - [DOM Query Caching in High-Frequency Loops]
+**Learning:** [Repeatedly querying the DOM using `document.getElementById` or `document.querySelector` inside high-frequency execution paths (like `setInterval` running every 1 or 5 seconds) causes unnecessary CPU cycles, as the browser must traverse the DOM tree repeatedly.]
+**Action:** [Cache all static DOM element references into a central object (e.g., `const domEls = { el: document.getElementById('el') };`) during script initialization. Reuse these cached references in loops, and pair them with strict equality checks before mutating `.innerText` or `.innerHTML`.]

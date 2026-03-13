@@ -72,7 +72,22 @@ fi
 # 3. Lanzar Plano de Control (Headscale)
 headscale serve -c /etc/headscale/config.yaml > /var/log/headscale.log 2>&1 &
 HS_PID=$!
-sleep 10
+
+echo "⏳ [CORE] Esperando inicialización de Headscale..."
+HS_RETRIES=0
+HS_MAX_RETRIES=15
+while [ $HS_RETRIES -lt $HS_MAX_RETRIES ]; do
+  if curl -s http://localhost:9090/metrics > /dev/null; then
+    echo "✅ [CORE] Headscale operativo."
+    break
+  fi
+  HS_RETRIES=$((HS_RETRIES + 1))
+  sleep 1
+done
+
+if [ $HS_RETRIES -eq $HS_MAX_RETRIES ]; then
+  echo "⚠️ [CORE] Advertencia: Headscale tardó mucho en responder, continuando de todas formas..."
+fi
 
 # 4. Aprovisionamiento de Claves
 headscale users create tudex-admin || true

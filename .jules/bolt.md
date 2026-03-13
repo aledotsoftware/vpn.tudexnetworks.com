@@ -1,0 +1,3 @@
+## 2024-05-24 - Unnecessary DOM reflows in dashboard
+**Learning:** The control dashboard `config/dashboard.html` is manually manipulating the DOM every 5 seconds. Using `document.getElementById` and unconditionally overwriting `innerHTML`/`innerText` even when data hasn't changed causes expensive reflows and repaints in browsers. Using `innerText` triggers style recalculation compared to `textContent`.
+**Action:** When working with raw HTML/JS periodic updates without a VDOM framework, cache DOM node references at initialization and always diff string states (HTML strings or text content) before updating the DOM to bypass unneeded repaints. Use `textContent` instead of `innerText` for plain text updates.

@@ -123,6 +123,22 @@
         const startTime = Date.now();
         let lastBytesIn = 0;
 
+        // ⚡ Bolt: Cache DOM elements to prevent repeated lookups
+        const domNodeCount = document.getElementById('node-count');
+        const domNodeList = document.getElementById('node-list');
+        const domRegionList = document.getElementById('region-list');
+        const domTrafficIn = document.getElementById('traffic-in');
+        const domActiveReqs = document.getElementById('active-reqs');
+        const domUptime = document.getElementById('uptime');
+
+        // ⚡ Bolt: Cache last rendered state to prevent unnecessary DOM reflows
+        let lastNodeCount = null;
+        let lastNodeHtml = null;
+        let lastRegionHtml = null;
+        let lastTrafficText = null;
+        let lastActiveReqs = null;
+        let lastUptimeText = null;
+
         // Chart Init
         const ctx = document.getElementById('trafficChart').getContext('2d');
         const trafficChart = new Chart(ctx, {
@@ -147,17 +163,30 @@
 
                 // 1. Process Headscale Nodes
                 const machines = hsData.machines || [];
-                document.getElementById('node-count').innerText = machines.length;
-                document.getElementById('node-list').innerHTML = machines.map(m => `
+                const newNodeCount = String(machines.length);
+                if (newNodeCount !== lastNodeCount) {
+                    domNodeCount.textContent = newNodeCount;
+                    lastNodeCount = newNodeCount;
+                }
+
+                const newNodeHtml = machines.map(m => `
                     <tr><td><b>${m.givenName}</b></td><td>${m.ipAddresses[0]}</td><td>${m.operatingSystem}</td><td>${m.user.name}</td><td><span class="${m.online ? 'status-up' : 'status-down'}">● ${m.online ? 'UP' : 'OFF'}</span></td></tr>
                 `).join('');
+                if (newNodeHtml !== lastNodeHtml) {
+                    domNodeList.innerHTML = newNodeHtml;
+                    lastNodeHtml = newNodeHtml;
+                }
 
                 // 2. Process HAProxy Stats (Real Traffic)
                 // Procesar Backends (Regiones)
                 const backends = pxData.filter(i => i.obj_type === 'server' && i.pxname === 'mesh_cluster');
-                document.getElementById('region-list').innerHTML = backends.map(b => `
+                const newRegionHtml = backends.map(b => `
                     <tr><td>${b.svname}</td><td><span class="${b.status === 'UP' ? 'status-up' : 'status-down'}">● ${b.status}</span></td><td>${b.check_duration || 0}ms</td></tr>
                 `).join('');
+                if (newRegionHtml !== lastRegionHtml) {
+                    domRegionList.innerHTML = newRegionHtml;
+                    lastRegionHtml = newRegionHtml;
+                }
 
                 // Procesar Tráfico (Frontend principal)
                 const frontend = pxData.find(i => i.obj_type === 'frontend' && i.pxname === 'main_gateway');
@@ -166,8 +195,17 @@
                     const diff = lastBytesIn > 0 ? (currentBytes - lastBytesIn) / 5 : 0;
                     lastBytesIn = currentBytes;
                     
-                    document.getElementById('traffic-in').innerText = (currentBytes / 1024 / 1024).toFixed(2) + ' MB';
-                    document.getElementById('active-reqs').innerText = frontend.scur;
+                    const newTrafficText = (currentBytes / 1024 / 1024).toFixed(2) + ' MB';
+                    if (newTrafficText !== lastTrafficText) {
+                        domTrafficIn.textContent = newTrafficText;
+                        lastTrafficText = newTrafficText;
+                    }
+
+                    const newActiveReqs = String(frontend.scur);
+                    if (newActiveReqs !== lastActiveReqs) {
+                        domActiveReqs.textContent = newActiveReqs;
+                        lastActiveReqs = newActiveReqs;
+                    }
                     
                     trafficChart.data.datasets[0].data.shift();
                     trafficChart.data.datasets[0].data.push(diff);
@@ -182,7 +220,11 @@
         setInterval(updateData, 5000);
         setInterval(() => {
             const up = Math.floor((Date.now() - startTime) / 1000);
-            document.getElementById('uptime').innerText = `${Math.floor(up/60)}m ${up%60}s`;
+            const newUptimeText = `${Math.floor(up/60)}m ${up%60}s`;
+            if (newUptimeText !== lastUptimeText) {
+                domUptime.textContent = newUptimeText;
+                lastUptimeText = newUptimeText;
+            }
         }, 1000);
         updateData();
     </script>

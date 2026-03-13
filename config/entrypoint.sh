@@ -55,16 +55,17 @@ NOISE_KEY=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e
 
 mkdir -p /var/lib/headscale /var/run/headscale
 
-if [ -n "$PRIVATE_KEY" ]; then
+if [ -n "$PRIVATE_KEY" ] && [ -n "$NOISE_KEY" ]; then
     echo "✅ [AUTH] Identidad recuperada."
     echo "$PRIVATE_KEY" > /var/lib/headscale/private.key
     echo "$NOISE_KEY" > /var/lib/headscale/noise_private.key
 else
-    echo "🚀 [AUTH] Generando raíz de identidad de malla..."
-    # Claves por defecto si no existen (solo primer boot)
-    echo "9f8488347f892182747182747182747182747182747182747182747182747182" > /var/lib/headscale/private.key
-    echo "7f8488347f892182747182747182747182747182747182747182747182747181" > /var/lib/headscale/noise_private.key
+    echo "🚀 [AUTH] Generando raíz de identidad de malla dinámicamente..."
+    # Generar claves aleatorias seguras (64 hex chars = 32 bytes)
+    head -c 32 /dev/urandom | xxd -p -c 32 > /var/lib/headscale/private.key
+    head -c 32 /dev/urandom | xxd -p -c 32 > /var/lib/headscale/noise_private.key
     mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT IGNORE INTO headscale_secrets (key_name, key_content) VALUES ('private_key', '$(cat /var/lib/headscale/private.key)'), ('noise_private_key', '$(cat /var/lib/headscale/noise_private.key)');"
+    mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('KEY_ROTATION', 'Generación inicial dinámica de claves WireGuard/Noise', '$MASTER_IP');"
 fi
 
 # 3. Lanzar Plano de Control (Headscale)
@@ -115,6 +116,7 @@ sed -i "s|%%ACTIVE_KEYS%%|$KEYS_HTML|g" /etc/headscale/dashboard.html
 
 # 6. Activar HAProxy (ANTES de la conexión mesh para evitar bloqueos)
 echo "⚖️ [EDGE] Iniciando HAProxy Gateway..."
+mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('GATEWAY_BOOT', 'HAProxy Edge Gateway iniciado exitosamente', '$MASTER_IP');"
 haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
 
 # 7. Conexión Mesh en Background (Evita que el boot se cuelgue si el 401 persiste)

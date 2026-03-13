@@ -1,0 +1,3 @@
+## 2024-05-18 - [DOM Rendering Reflow Optimization in Vanilla JS Dashboard]
+**Learning:** [Continuously reassigning `element.innerHTML` in a `setInterval` loop (even with identical content) forces the browser to re-parse the HTML string, destroy existing DOM nodes, and recreate them, triggering unnecessary layouts, reflows, and repaints. This causes high CPU usage and degraded frame rates in long-running dashboards like the Tudex NOC Dashboard.]
+**Action:** [Before updating `innerHTML`, always store the newly generated HTML string and strictly compare it to the element's current `innerHTML` (e.g., `if (el.innerHTML !== newHtml) el.innerHTML = newHtml;`). This simple condition acts as a virtual DOM diffing mechanism for vanilla JS, significantly reducing DOM churn.]

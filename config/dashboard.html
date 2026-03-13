@@ -53,6 +53,7 @@
             letter-spacing: 2px;
             background: linear-gradient(to right, #fff, var(--primary));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -155,11 +156,11 @@
         <div class="master-icon">🛰️</div>
         <div style="flex: 1">
             <div style="font-size: 12px; color: var(--text-dim)">GATEWAY MAESTRO (Controller)</div>
-            <div style="font-size: 18px; font-weight: 600;">vpn.tudexnetworks.com</div>
+            <div id="master-domain" style="font-size: 18px; font-weight: 600;">vpn.tudexnetworks.com</div>
         </div>
         <div style="text-align: right">
-            <div style="font-size: 12px; color: var(--text-dim)">IP PÚBLICA</div>
-            <div id="master-ip" style="font-weight: 600;">127.0.0.1 (Local)</div>
+            <div style="font-size: 12px; color: var(--text-dim)">IP DEL CONTROLADOR</div>
+            <div id="master-ip" style="font-weight: 600;">172.23.0.3</div>
         </div>
     </div>
 
@@ -211,28 +212,29 @@
 
         async function fetchNodes() {
             try {
-                const res = await fetch('/api/v1/node', {
+                // En v0.22.3 el endpoint es /machine, no /node
+                const res = await fetch('/api/v1/machine', {
                     headers: { 'Authorization': `Bearer ${API_KEY}` }
                 });
                 
                 if (!res.ok) throw new Error(res.status === 401 ? 'Auth Required' : 'Offline');
                 
                 const data = await res.json();
-                const nodes = data.nodes || [];
+                const machines = data.machines || [];
                 
-                document.getElementById('node-count').innerText = nodes.length;
+                document.getElementById('node-count').innerText = machines.length;
                 
                 const tbody = document.getElementById('node-list');
-                if (nodes.length === 0) {
+                if (machines.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-dim)">No hay nodos registrados todavía en la mesh.</td></tr>';
                 } else {
-                    tbody.innerHTML = nodes.map(n => `
+                    tbody.innerHTML = machines.map(m => `
                         <tr>
-                            <td><b>${n.given_name || n.name}</b></td>
-                            <td>${n.ip_addresses[0]}</td>
-                            <td>${n.user.name}</td>
-                            <td><span class="status-tag ${n.online ? 'status-online' : 'status-offline'}">${n.online ? 'Online' : 'Offline'}</span></td>
-                            <td>${new Date(n.last_seen).toLocaleTimeString()}</td>
+                            <td><b>${m.givenName || m.name}</b></td>
+                            <td>${m.ipAddresses[0]}</td>
+                            <td>${m.user.name}</td>
+                            <td><span class="status-tag ${m.online ? 'status-online' : 'status-offline'}">${m.online ? 'Online' : 'Offline'}</span></td>
+                            <td>${new Date(m.lastSeen).toLocaleTimeString()}</td>
                         </tr>
                     `).join('');
                 }

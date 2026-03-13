@@ -44,7 +44,17 @@ Para que un servidor aparezca en el dashboard, debe unirse a la malla:
 
 ---
 
-## 🛡️ 4. Seguridad y Mantenimiento
+## 💾 4. Capa de Datos y Persistencia
+
+El sistema utiliza un enfoque híbrido para máxima velocidad y confiabilidad:
+- **Estados de Sesión (SQLite):** Headscale maneja la base de datos de nodos localmente para latencia cero.
+- **Sincronización de Cluster (MySQL):** Los secretos vitales, auditoría y métricas se guardan en el "Cerebro Central" SQL.
+
+Consulta el esquema formal en: [database/schema.sql](file:///p:/vpn.tudexnetworks.com/database/schema.sql)
+
+---
+
+## 🛡️ 5. Seguridad y Mantenimiento...
 
 - **Secretos:** Las claves `private.key` y `noise_private.key` se guardan en la tabla `headscale_secrets` de MySQL. Todos los gateways con la misma DB compartirán la misma identidad de red.
 - **ACLs:** Configura políticas de seguridad estrictas en `/config/acl.hujson`.

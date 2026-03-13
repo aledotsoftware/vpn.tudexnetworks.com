@@ -1,7 +1,14 @@
 #!/bin/sh
 set -e
 
-echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V19 - SATELLITE HUB)"
+echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V20 - PRODUCTION READY)"
+
+# 0. Asegurar dispositivo TUN (Crítico para servidores de Internet)
+if [ ! -c /dev/net/tun ]; then
+    echo "🔧 Creando interfaz TUN..."
+    mkdir -p /dev/net
+    mknod /dev/net/tun c 10 200 || true
+fi
 
 # 1. Capa de Datos
 until mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" --silent; do
@@ -45,31 +52,24 @@ sleep 15
 
 # 4. Aprovisionamiento de Claves
 headscale users create tudex-admin || true
-
 API_KEY=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT key_content FROM headscale_secrets WHERE key_name='api_key';")
 if [ -z "$API_KEY" ]; then
     API_KEY=$(headscale apikeys create --expiration 3650d | grep -oE "hsak_[a-zA-Z0-9]+" | tail -n 1)
     mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO headscale_secrets (key_name, key_content) VALUES ('api_key', '$API_KEY') ON DUPLICATE KEY UPDATE key_content='$API_KEY';"
 fi
 
-# Generar y extraer llaves activas para el Dashboard
-echo "🔑 Sincronizando Pre-AuthKeys..."
-SATELLITE_KEY=$(headscale preauthkeys create -u tudex-admin --reusable --expiration 2160h | grep -oE "[a-f0-9]{48}" || echo "")
-# Formatear llaves para el HTML
-KEYS_HTML=$(headscale preauthkeys list -u tudex-admin --output json-line | awk '{print "<tr><td><b>" $1 "</b></td><td>" $2 "</td><td>" $3 "</td><td>" $4 "</td></tr>"}' || echo "<tr><td colspan='4'>No active keys</td></tr>")
-
-# 5. Gateway Mesh Participation (Self-Exit Node)
+# 5. Gateway Mesh Node (Self-Exit Node)
 mkdir -p /var/run/tailscale /var/lib/tailscale
 tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock &
 sleep 5
-tailscale up --login-server http://localhost:8080 --authkey "$SATELLITE_KEY" --hostname "master-gateway" --advertise-exit-node --accept-routes || true
+tailscale up --login-server http://localhost:8080 --authkey "$(headscale preauthkeys create -u tudex-admin --reusable --expiration 1h | grep -oE '[a-f0-9]{48}')" --hostname "master-gateway" --advertise-exit-node --accept-routes || true
 
-# Routing
+# Routing (IP Masquerade para el Exit Node)
 iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE || true
 
 # 6. Dashboard Patching
-# Auditoría
 LOGS_HTML=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT GROUP_CONCAT(CONCAT('[', created_at, '] ', event_type, ': ', description) SEPARATOR '<br>') FROM (SELECT * FROM security_audit ORDER BY id DESC LIMIT 10) as t;" || echo "No logs")
+KEYS_HTML=$(headscale preauthkeys list -u tudex-admin --output json-line | awk '{print "<tr><td><b>" $1 "</b></td><td>" $2 "</td><td>" $3 "</td><td>" $4 "</td></tr>"}' || echo "<tr><td colspan='4'>No active keys</td></tr>")
 
 sed -i "s|%%DASHBOARD_API_KEY%%|$API_KEY|g" /etc/headscale/dashboard.html
 sed -i "s|%%MASTER_IP%%|$MASTER_IP|g" /etc/headscale/dashboard.html
@@ -92,5 +92,6 @@ haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
     done
 ) &
 
-echo "🌐 TUDEX MESH: EXIT NODE & SATELLITE HUB READY"
+echo "🌐 TUDEX MESH: INFRAESTRUCTURA DE PRODUCCIÓN INICIADA"
 wait $HS_PID
+筋

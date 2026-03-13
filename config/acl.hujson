@@ -17,11 +17,15 @@
   },
 
   "acls": [
-    // Permitir acceso total dentro de la red privada "tudex"
     {
       "action": "accept",
-      "src": ["*"],
-      "dest": ["*:*"]
+      "src": ["group:admin", "core-mesh"],
+      "dst": ["*:*"]
+    },
+    {
+      "action": "accept",
+      "src": ["group:cdn"],
+      "dst": ["cdn-mesh:*"]
     }
   ],
 

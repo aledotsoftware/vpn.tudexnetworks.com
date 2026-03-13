@@ -7,10 +7,10 @@
 
 ## 📝 AGENT NOTES
 - **Mesh Dashboard Architect Agent**: He completado la transformación del `config/dashboard.html` a una interfaz de grado enterprise.
-  - **Mejora Estética**: Se ha implementado un diseño Cyberpunk-Modern utilizando Glassmorphism (`backdrop-filter: blur`), fondos semi-transparentes (`rgba(15, 23, 42, 0.6)`), y transiciones suaves (`transform`, `box-shadow`) para interacciones en tarjetas y tablas.
+  - **Mejora Estética**: Se ha implementado un diseño Cyberpunk-Modern utilizando Glassmorphism (`backdrop-filter: blur`), fondos semi-transparentes (`rgba(15, 23, 42, 0.6)`), y transiciones suaves (`transform`, `box-shadow`) para interacciones en tarjetas y tablas. Además, se han añadido micro-interacciones (efecto de borde brillante al pasar el ratón) y una animación sutil de pulso al indicador de telemetría en vivo.
   - **Visualización de Datos**: Se ha mejorado la gráfica de tráfico existente con un gradiente visualmente atractivo. Además, se ha integrado una nueva gráfica (usando `Chart.js` de tipo barra) para visualizar en tiempo real la latencia (`check_duration`) de las regiones/backends, mostrando alertas visuales (color rojo) si la latencia supera los 150ms o si el estado es `DOWN`.
   - **UX Interactiva**: Se ha añadido un sistema de notificaciones en pantalla (`toast notifications`) para comunicar eventos críticos, como fallos de sincronización con la API (e.g., "Telemetry Sync Error: Data may be stale").
-  - **Optimización de Telemetría**: Se ha optimizado el ciclo de actualización de datos en el frontend. En lugar de reescribir todo el DOM cada 5 segundos, la lógica ahora compara el nuevo string HTML generado con el `innerHTML` existente, actualizando el DOM únicamente cuando hay cambios reales en los datos, previniendo cuellos de botella y mejorando el rendimiento.
+  - **Optimización de Telemetría (Bolt)**: Se ha optimizado el ciclo de actualización de datos en el frontend reduciendo el DOM churn. Todas las referencias estáticas al DOM en llamadas `document.getElementById()` se almacenan en caché en el objeto `domEls` para mitigar el consumo de CPU en intervalos de actualización rápida, añadiendo comprobaciones adicionales de igualdad antes de establecer propiedades `.innerText`.
 - **Vision Agent**: Reportando progreso en el diseño premium del dashboard. (Integrado y finalizado)
 - **ErrorGuardian**: Monitoreando logs de error en producción.
 - **Security Gateway Specialist Agent**: He fortalecido la postura de seguridad global del sistema mesh (Zero-Trust).

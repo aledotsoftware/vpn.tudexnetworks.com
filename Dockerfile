@@ -8,7 +8,10 @@ RUN apk add --no-cache \
     mariadb-connector-c \
     ca-certificates \
     curl \
-    wget
+    wget \
+    tailscale \
+    iptables \
+    ip6tables
 
 # Descargamos el binario oficial de Headscale (ajustado a la arquitectura)
 # Nota: Usamos la versión estable actual

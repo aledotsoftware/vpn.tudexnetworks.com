@@ -1,0 +1,90 @@
+services:
+  # --- GATEWAY ALFA (Conectado a DB Externa) ---
+  gateway-alfa:
+    build: .
+    container_name: gateway_alfa
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - DB_TYPE=mysql
+      - DB_HOST=srv1659.hstgr.io
+      - DB_PORT=3306
+      - DB_NAME=u487445196_tudex_db
+      - DB_USER=u487445196_tudex_db
+      - DB_PASS=5jt1RhVb~I$h
+    ports:
+      - "8081:80"    # Dashboard Alfa
+      - "8080:8080"  # API Alfa
+    volumes:
+      - ./config:/etc/headscale
+      - headscale_data_alfa:/var/lib/headscale
+
+  # --- GATEWAY BETA (HA Mirror - DB Externa) ---
+  gateway-beta:
+    build: .
+    container_name: gateway_beta
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - DB_TYPE=mysql
+      - DB_HOST=srv1659.hstgr.io
+      - DB_PORT=3306
+      - DB_NAME=u487445196_tudex_db
+      - DB_USER=u487445196_tudex_db
+      - DB_PASS=5jt1RhVb~I$h
+    ports:
+      - "8181:80"    # Dashboard Beta
+      - "8180:8080"  # API Beta
+    volumes:
+      - ./config:/etc/headscale
+      - headscale_data_beta:/var/lib/headscale
+
+  # --- NODO SATÉLITE 1 (Local) ---
+  node-01:
+    build: ../now.tudexnetworks.com
+    container_name: node_01
+    depends_on:
+      - gateway-alfa
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - NODE_NAME=local-node-01
+      - VPN_SERVER_URL=http://gateway-alfa:8080
+      - VPN_AUTH_KEY=${VPN_AUTH_KEY} # Se recomienda inyectar desde .env o dashboard
+    networks:
+      - default
+
+  # --- NODO SATÉLITE 2 (Local) ---
+  node-02:
+    build: ../now.tudexnetworks.com
+    container_name: node_02
+    depends_on:
+      - gateway-alfa
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - NODE_NAME=local-node-02
+      - VPN_SERVER_URL=http://gateway-alfa:8080
+      - VPN_AUTH_KEY=${VPN_AUTH_KEY}
+    networks:
+      - default
+
+volumes:
+  headscale_data_alfa:
+  headscale_data_beta:

@@ -52,17 +52,26 @@ sleep 15
 
 # 4. Aprovisionamiento de Claves
 headscale users create tudex-admin || true
+
+# API Key Dashboard
 API_KEY=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT key_content FROM headscale_secrets WHERE key_name='api_key';")
 if [ -z "$API_KEY" ]; then
     API_KEY=$(headscale apikeys create --expiration 3650d | grep -oE "hsak_[a-zA-Z0-9]+" | tail -n 1)
     mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO headscale_secrets (key_name, key_content) VALUES ('api_key', '$API_KEY') ON DUPLICATE KEY UPDATE key_content='$API_KEY';"
 fi
 
+# Satellite Pre-AuthKey (Persistent for Lab)
+SATELLITE_KEY=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT key_content FROM headscale_secrets WHERE key_name='satellite_auth_key';")
+if [ -z "$SATELLITE_KEY" ]; then
+    SATELLITE_KEY=$(headscale preauthkeys create -u tudex-admin --reusable --expiration 2160h | grep -oE "[a-f0-9]{48}" || echo "")
+    mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO headscale_secrets (key_name, key_content) VALUES ('satellite_auth_key', '$SATELLITE_KEY') ON DUPLICATE KEY UPDATE key_content='$SATELLITE_KEY';"
+fi
+
 # 5. Gateway Mesh Node (Self-Exit Node)
 mkdir -p /var/run/tailscale /var/lib/tailscale
 tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock &
 sleep 5
-tailscale up --login-server http://localhost:8080 --authkey "$(headscale preauthkeys create -u tudex-admin --reusable --expiration 1h | grep -oE '[a-f0-9]{48}')" --hostname "master-gateway" --advertise-exit-node --accept-routes || true
+tailscale up --login-server http://localhost:8080 --authkey "$SATELLITE_KEY" --hostname "master-gateway" --advertise-exit-node --accept-routes || true
 
 # Routing (IP Masquerade para el Exit Node)
 iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE || true

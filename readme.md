@@ -59,5 +59,12 @@ Consulta el esquema formal en: [database/schema.sql](file:///p:/vpn.tudexnetwork
 - **Secretos:** Las claves `private.key` y `noise_private.key` se guardan en la tabla `headscale_secrets` de MySQL. Todos los gateways con la misma DB compartirán la misma identidad de red.
 - **ACLs:** Configura políticas de seguridad estrictas en `/config/acl.hujson`.
 
----
+
+los puertos del servidor físico que deben estar abiertos:
+- **TCP 80, 443:** Tráfico Web y SSL.
+- **TCP 8080:** API de Control Plane.
+- **TCP 8404:** Monitorización de HAProxy.
+- **UDP 41641:** Túnel Wireguard de la Mesh (Crítico).
+- **UDP 3478:** Servidor STUN (Opcional, ayuda a NAT).
+
 *Tudex Networks - Engineered for Performance.*

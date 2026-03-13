@@ -1,8 +1,13 @@
+# Build stage para descargar dependencias pesadas
+FROM alpine:3.19 AS builder
+RUN apk add --no-cache curl
+RUN curl -L https://github.com/juanfont/headscale/releases/download/v0.22.3/headscale_0.22.3_linux_amd64 -o /bin/headscale && \
+    chmod +x /bin/headscale
+
 # Usamos Alpine como base para tener un shell y gestor de paquetes
 FROM alpine:3.19
 
-# Instalamos Headscale, HAProxy y dependencias
-# Descargamos el binario oficial de Headscale (ajustado a la arquitectura)
+# Instalamos HAProxy y dependencias
 # Generamos directorios necesarios
 RUN apk add --no-cache \
     haproxy \
@@ -14,9 +19,10 @@ RUN apk add --no-cache \
     tailscale \
     iptables \
     ip6tables && \
-    curl -L https://github.com/juanfont/headscale/releases/download/v0.22.3/headscale_0.22.3_linux_amd64 -o /bin/headscale && \
-    chmod +x /bin/headscale && \
     mkdir -p /etc/headscale /var/lib/headscale /var/run/headscale /usr/local/etc/haproxy
+
+# Copiamos el binario compilado/descargado desde la fase builder
+COPY --from=builder /bin/headscale /bin/headscale
 
 # Copiamos configuraciones
 COPY ./config/entrypoint.sh /entrypoint.sh

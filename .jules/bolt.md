@@ -13,3 +13,7 @@
 ## 2024-06-15 - [CSS `@media` Queries over JS `window.resize` for Layouts]
 **Learning:** [Using JavaScript event listeners like `window.addEventListener('resize', ...)` to programmatically adjust layout structures (e.g. changing grid columns or element widths) triggers frequent, heavy DOM recalculations and layout thrashing, significantly impacting the main thread performance and battery life on mobile devices.]
 **Action:** [Always prefer declarative CSS `@media` queries to handle responsive layouts and structural changes based on viewport width. The browser's native CSS rendering engine handles these breakpoints asynchronously and much more efficiently than JavaScript-based DOM manipulation.]
+
+## 2024-06-22 - [Batching DOM Mutations with `requestAnimationFrame`]
+**Learning:** [Making multiple sequential updates to the DOM (like modifying `.innerText` or `.innerHTML` on multiple elements) in a synchronous block of code can trigger layout thrashing and forced synchronous layouts, causing jank and degraded rendering performance.]
+**Action:** [Wrap multiple DOM mutations inside a single `requestAnimationFrame()` callback. This batches the updates together, allowing the browser to optimize the rendering process and apply all changes simultaneously right before the next repaint, significantly improving visual smoothness.]

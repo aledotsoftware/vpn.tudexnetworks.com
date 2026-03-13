@@ -133,19 +133,26 @@
 
         async function updateData() {
             try {
-                // 1. Fetch Headscale Nodes
-                const hsRes = await fetch('/api/v1/machine', { headers: { 'Authorization': `Bearer ${API_KEY}` } });
-                const hsData = await hsRes.json();
+                // ⚡ Bolt: Fetch Headscale Nodes and HAProxy Stats concurrently to reduce latency
+                const [hsRes, pxRes] = await Promise.all([
+                    fetch('/api/v1/machine', { headers: { 'Authorization': `Bearer ${API_KEY}` } }),
+                    fetch('/stats/json')
+                ]);
+
+                // Parse both JSON responses concurrently
+                const [hsData, pxData] = await Promise.all([
+                    hsRes.json(),
+                    pxRes.json()
+                ]);
+
+                // 1. Process Headscale Nodes
                 const machines = hsData.machines || [];
                 document.getElementById('node-count').innerText = machines.length;
                 document.getElementById('node-list').innerHTML = machines.map(m => `
                     <tr><td><b>${m.givenName}</b></td><td>${m.ipAddresses[0]}</td><td>${m.operatingSystem}</td><td>${m.user.name}</td><td><span class="${m.online ? 'status-up' : 'status-down'}">● ${m.online ? 'UP' : 'OFF'}</span></td></tr>
                 `).join('');
 
-                // 2. Fetch HAProxy Stats (Real Traffic)
-                const pxRes = await fetch('/stats/json');
-                const pxData = await pxRes.json();
-                
+                // 2. Process HAProxy Stats (Real Traffic)
                 // Procesar Backends (Regiones)
                 const backends = pxData.filter(i => i.obj_type === 'server' && i.pxname === 'mesh_cluster');
                 document.getElementById('region-list').innerHTML = backends.map(b => `

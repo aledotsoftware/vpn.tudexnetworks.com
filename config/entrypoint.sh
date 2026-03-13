@@ -59,6 +59,7 @@ if [ -n "$PRIVATE_KEY" ] && [ -n "$NOISE_KEY" ]; then
     echo "✅ [AUTH] Identidad recuperada."
     echo "$PRIVATE_KEY" > /var/lib/headscale/private.key
     echo "$NOISE_KEY" > /var/lib/headscale/noise_private.key
+    mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('IDENTITY_RECOVERY', 'Identidad de red recuperada exitosamente de la base de datos', '$MASTER_IP');"
 else
     echo "🚀 [AUTH] Generando raíz de identidad de malla dinámicamente..."
     # Generar claves aleatorias seguras (64 hex chars = 32 bytes)
@@ -86,6 +87,7 @@ if [ -n "$API_KEY" ]; then
     if [ "$CODE" = "200" ]; then
         VALID_KEY=true
         echo "✅ [AUTH] API Key válida recuperada."
+        mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('API_KEY_RECOVERY', 'API Key de Dashboard validada exitosamente', '$MASTER_IP');"
     fi
 fi
 

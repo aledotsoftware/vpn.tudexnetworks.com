@@ -3,12 +3,14 @@
   // TUDEX NETWORKS - POLÍTICAS DE ACCESO (ACL)
   // ============================================================
   
-  // Por defecto, permitimos que todos los nodos hablen entre sí.
-  // Puedes restringir el tráfico aquí definiendo grupos y reglas.
+  // Segmentación basada en el Principio de Menor Privilegio (Least Privilege).
+  // Solo los administradores tienen acceso total, mientras que otros grupos
+  // están restringidos a los puertos y servicios estrictamente necesarios.
   
   "groups": {
     "group:admin": ["tudex"],
-    "group:cdn": ["tudex"]
+    "group:cdn": ["tudex"],
+    "group:monitoring": ["tudex"]
   },
 
   "hosts": {
@@ -28,10 +30,17 @@
       "action": "accept",
       "src": ["group:cdn"],
       "dest": ["cdn-mesh:80", "cdn-mesh:443"]
+    },
+    // Permitir al grupo de monitorización acceso únicamente al puerto de métricas
+    {
+      "action": "accept",
+      "src": ["group:monitoring"],
+      "dest": ["core-mesh:9090"]
     }
   ],
 
   "ssh": [
+    // Permitir a los administradores acceso SSH
     {
       "action": "accept",
       "src": ["group:admin"],

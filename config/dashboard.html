@@ -88,9 +88,75 @@
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.5); }
+
+        /* Loading Overlay Styling */
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(2, 6, 23, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 50px; height: 50px;
+            border: 3px solid rgba(139, 92, 246, 0.3);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        .loading-text {
+            color: var(--primary);
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .layout-container { grid-template-columns: 1fr; }
+            .grid-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                padding: 20px;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .sidebar > div { margin-top: 0 !important; }
+            .sidebar > div[style*="position: absolute"] {
+                position: static !important;
+                text-align: right;
+            }
+            .main-content { margin-left: 0; padding: 20px; }
+            .grid-stats { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            /* Overflow handling for tables */
+            .panel { overflow-x: auto; }
+        }
     </style>
 </head>
 <body>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">CONNECTING TO CONTROL PLANE...</div>
+    </div>
 
     <div class="sidebar">
         <div class="logo">TUDEX NOC v1.0</div>
@@ -182,6 +248,7 @@
 
         // ⚡ Bolt: Cache DOM elements to prevent repeated lookups in loops
         const domEls = {
+            loadingOverlay: document.getElementById('loading-overlay'),
             toastContainer: document.getElementById('toast-container'),
             nodeCount: document.getElementById('node-count'),
             nodeList: document.getElementById('node-list'),
@@ -194,6 +261,11 @@
         };
 
         // UI Helpers
+        /**
+         * Displays a temporary toast notification on the screen.
+         * @param {string} message - The text message to display.
+         * @param {'success'|'error'|'warning'} [type='success'] - The severity/type of the notification.
+         */
         function showToast(message, type = 'success') {
             const container = domEls.toastContainer;
             const toast = document.createElement('div');
@@ -235,6 +307,11 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { display: true, grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } } } }
         });
 
+        /**
+         * Fetches and processes telemetry data from Headscale and HAProxy concurrently,
+         * updating the dashboard DOM elements and charts without full re-renders.
+         * Runs on an interval to ensure near real-time monitoring.
+         */
         async function updateData() {
             try {
                 // ⚡ Bolt: Fetch Headscale Nodes and HAProxy Stats concurrently to reduce latency
@@ -303,6 +380,16 @@
                     trafficChart.data.datasets[0].data.shift();
                     trafficChart.data.datasets[0].data.push(diff);
                     trafficChart.update();
+                }
+
+                if (domEls.loadingOverlay) {
+                    domEls.loadingOverlay.style.opacity = '0';
+                    setTimeout(() => {
+                        if (domEls.loadingOverlay) {
+                            domEls.loadingOverlay.style.display = 'none';
+                            domEls.loadingOverlay = null; // Free reference
+                        }
+                    }, 500);
                 }
 
             } catch (e) {

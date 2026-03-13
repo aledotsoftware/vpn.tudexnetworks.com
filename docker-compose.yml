@@ -13,18 +13,24 @@ services:
       - /dev/net/tun:/dev/net/tun
     labels:
       - "traefik.enable=true"
-      # Panel de Control (Dashboard)
+      # Importante: Indicar a Traefik qué red usar
+      - "traefik.docker.network=dokploy-network"
+      
+      # Dashboard
       - "traefik.http.routers.headscale-dash.rule=Host(`vpn.tudexnetworks.com`) && PathPrefix(`/dashboard`)"
       - "traefik.http.routers.headscale-dash.entrypoints=web"
       - "traefik.http.services.headscale-dash.loadbalancer.server.port=80"
-      # API de Headscale
+      
+      # API
       - "traefik.http.routers.headscale-api.rule=Host(`vpn.tudexnetworks.com`) && PathPrefix(`/api`, `/register`, `/apple`, `/windows`, `/oidc`)"
       - "traefik.http.routers.headscale-api.entrypoints=web"
       - "traefik.http.services.headscale-api.loadbalancer.server.port=8080"
-      # Rutas dinámicas para la Mesh (Subdominios)
+      
+      # Satélites Mesh
       - "traefik.http.routers.mesh-sites.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.tudexnetworks.com`)"
       - "traefik.http.routers.mesh-sites.entrypoints=web"
       - "traefik.http.services.mesh-sites.loadbalancer.server.port=80"
+      
     environment:
       - DB_TYPE=${DB_TYPE:-sqlite3}
       - DB_HOST=${DB_HOST}
@@ -32,11 +38,10 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
-    # Solo mapeamos puertos que NO son 80/443 (que ya usa Traefik/Dokploy)
     ports:
-      - "8080:8080"  # Headscale Interno
-      - "9090:9090"  # Metrics
-      - "8404:8404"  # HAProxy Stats
+      - "8080:8080"
+      - "8404:8404"
+      - "41641:41641/udp" # Puerto nativo de Wireguard
     volumes:
       - ./config:/etc/headscale
       - headscale_data:/var/lib/headscale
@@ -54,4 +59,4 @@ networks:
 volumes:
   headscale_data:
   headscale_run:
-
+筋

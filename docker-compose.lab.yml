@@ -16,10 +16,10 @@ services:
       - DB_PORT=3306
       - DB_NAME=u487445196_tudex_db
       - DB_USER=u487445196_tudex_db
-      - DB_PASS=5jt1RhVb~I$h
+      - DB_PASS=5jt1RhVb~I$$h # Escapado para Docker-Compose
     ports:
-      - "8081:80"    # Dashboard Alfa
-      - "8080:8080"  # API Alfa
+      - "8081:80"
+      - "8080:8080"
     volumes:
       - ./config:/etc/headscale
       - headscale_data_alfa:/var/lib/headscale
@@ -41,15 +41,15 @@ services:
       - DB_PORT=3306
       - DB_NAME=u487445196_tudex_db
       - DB_USER=u487445196_tudex_db
-      - DB_PASS=5jt1RhVb~I$h
+      - DB_PASS=5jt1RhVb~I$$h
     ports:
-      - "8181:80"    # Dashboard Beta
-      - "8180:8080"  # API Beta
+      - "8181:80"
+      - "8180:8080"
     volumes:
       - ./config:/etc/headscale
       - headscale_data_beta:/var/lib/headscale
 
-  # --- NODO SATÉLITE 1 (Local) ---
+  # --- NODO SATÉLITE 1 ---
   node-01:
     build: ../now.tudexnetworks.com
     container_name: node_01
@@ -63,11 +63,11 @@ services:
     environment:
       - NODE_NAME=local-node-01
       - VPN_SERVER_URL=http://gateway-alfa:8080
-      - VPN_AUTH_KEY=${VPN_AUTH_KEY} # Se recomienda inyectar desde .env o dashboard
+      - VPN_AUTH_KEY=${VPN_AUTH_KEY}
     networks:
       - default
 
-  # --- NODO SATÉLITE 2 (Local) ---
+  # --- NODO SATÉLITE 2 ---
   node-02:
     build: ../now.tudexnetworks.com
     container_name: node_02
@@ -88,3 +88,4 @@ services:
 volumes:
   headscale_data_alfa:
   headscale_data_beta:
+

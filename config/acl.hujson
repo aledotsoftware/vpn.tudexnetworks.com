@@ -20,10 +20,12 @@
 
   "acls": [
     // Permitir a los administradores acceso total a toda la malla
+    // Regla de Least Privilege: Solo se permiten puertos explícitos.
+    // 80/443: Tráfico web, 8080: API Headscale, 8404: HAProxy Stats, 9090: Headscale Metrics, 41641: WireGuard UDP
     {
       "action": "accept",
       "src": ["group:admin"],
-      "dest": ["*:*"]
+      "dest": ["*:80", "*:443", "*:8080", "*:8404", "*:9090", "*:41641"]
     },
     // Permitir al grupo CDN acceso al rango cdn-mesh en puertos HTTP/HTTPS
     {

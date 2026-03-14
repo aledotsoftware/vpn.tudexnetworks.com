@@ -11,11 +11,11 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
-      - DB_TYPE=mysql
-      - DB_HOST=srv1659.hstgr.io
-      - DB_PORT=3306
-      - DB_NAME=u487445196_tudex_db
-      - DB_USER=u487445196_tudex_db
+      - DB_TYPE=${DB_TYPE:-mysql}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
     ports:
       - "8081:80"
@@ -36,11 +36,11 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
-      - DB_TYPE=mysql
-      - DB_HOST=srv1659.hstgr.io
-      - DB_PORT=3306
-      - DB_NAME=u487445196_tudex_db
-      - DB_USER=u487445196_tudex_db
+      - DB_TYPE=${DB_TYPE:-mysql}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
     ports:
       - "8181:80"

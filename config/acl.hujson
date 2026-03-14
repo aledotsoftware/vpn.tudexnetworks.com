@@ -19,21 +19,29 @@
   },
 
   "acls": [
-    // Permitir a los administradores acceso total a toda la malla
-    // Regla de Least Privilege: Solo se permiten puertos explícitos.
-    // 80/443: Tráfico web, 8080: API Headscale, 8404: HAProxy Stats, 9090: Headscale Metrics, 41641: WireGuard UDP
+    // [SECURITY GATEWAY] Principio de Mínimo Privilegio (Least Privilege) para Administradores.
+    // En lugar de usar *:*, se especifican los puertos críticos del sistema:
+    // - 80/443: Acceso a servicios web y dashboard
+    // - 8080: Headscale Control API (Aprovisionamiento y registro)
+    // - 8404: HAProxy Stats (Telemetría de ruteo)
+    // - 9090: Headscale Metrics (Monitoreo de malla)
+    // - 41641: WireGuard UDP (Túneles de red P2P)
     {
       "action": "accept",
       "src": ["group:admin"],
       "dest": ["*:80", "*:443", "*:8080", "*:8404", "*:9090", "*:41641"]
     },
-    // Permitir al grupo CDN acceso al rango cdn-mesh en puertos HTTP/HTTPS
+    // [SECURITY GATEWAY] Segmentación CDN-Mesh.
+    // Restringe a los nodos CDN a interactuar únicamente sobre HTTP/HTTPS
+    // dentro del rango IP predefinido (100.64.0.0/24), protegiendo los puertos de gestión.
     {
       "action": "accept",
       "src": ["group:cdn"],
       "dest": ["cdn-mesh:80", "cdn-mesh:443"]
     },
-    // Permitir al grupo de monitorización acceso únicamente al puerto de métricas
+    // [SECURITY GATEWAY] Aislamiento de Monitorización.
+    // El grupo de monitorización tiene acceso exclusivo al endpoint de métricas Prometheus
+    // del plano de control central (core-mesh), previniendo acceso lateral no autorizado.
     {
       "action": "accept",
       "src": ["group:monitoring"],

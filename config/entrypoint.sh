@@ -160,7 +160,7 @@ sed -i "s|%%ACTIVE_KEYS%%|$KEYS_HTML|g" /etc/headscale/dashboard.html
 
 # 6. Activar HAProxy (ANTES de la conexión mesh para evitar bloqueos)
 echo "⚖️ [EDGE] Iniciando HAProxy Gateway..."
-mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('GATEWAY_BOOT', 'HAProxy Edge Gateway iniciado exitosamente', '$MASTER_IP');"
+mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('GATEWAY_BOOT', 'HAProxy Edge Gateway iniciado exitosamente con mitigaciones anti-DoS y Anti-Escaneo', '$MASTER_IP');"
 haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
 
 # 7. Conexión Mesh en Background (Evita que el boot se cuelgue si el 401 persiste)

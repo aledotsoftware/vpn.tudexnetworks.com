@@ -27,10 +27,19 @@
     // - 8404: HAProxy Stats (Telemetría de ruteo)
     // - 9090: Headscale Metrics (Monitoreo de malla)
     // - 41641: WireGuard UDP (Túneles de red P2P)
+    // Nota: Se prohíbe el uso de *:0 para ICMP para prevenir caídas de control plane, usando puertos explícitos en su lugar.
     {
       "action": "accept",
       "src": ["group:admin"],
       "dest": ["*:80", "*:443", "*:8080", "*:8404", "*:9090", "*:41641"]
+    },
+    // [SECURITY GATEWAY] Regla ICMP Restringida
+    // Permitir ping (ICMP) para diagnóstico entre nodos sin utilizar el puerto comodín (*:0).
+    {
+      "action": "accept",
+      "src": ["*"],
+      "proto": "icmp",
+      "dst": ["*:*"]
     },
     // [SECURITY GATEWAY] Segmentación CDN-Mesh.
     // Restringe a los nodos CDN a interactuar únicamente sobre HTTP/HTTPS

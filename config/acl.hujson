@@ -52,11 +52,12 @@
   "ssh": [
     // [SECURITY GATEWAY] Acceso SSH Restringido
     // Permitir a los administradores acceso SSH exclusivamente, en línea con el Principio de Menor Privilegio (Least Privilege).
+    // Se ha restringido explícitamente el destino a la infraestructura conocida (core-mesh y cdn-mesh) en lugar de un comodín global.
     // Nota: Esto también requiere que el host de destino tenga habilitado Tailscale SSH.
     {
       "action": "accept",
       "src": ["group:admin"],
-      "dst": ["*"],
+      "dst": ["core-mesh", "cdn-mesh"],
       "users": ["root", "admin"]
     }
   ]

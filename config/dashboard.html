@@ -30,7 +30,7 @@
         .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.3); }
         .stat-label { color: var(--text-dim); font-size: 11px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
         .stat-value { font-size: 28px; font-weight: 700; margin-top: 8px; background: linear-gradient(135deg, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .layout-container { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .layout-container { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 20px; }
         .panel { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), inset 0 0 20px rgba(139, 92, 246, 0.05); }
         .panel-title { font-size: 13px; font-weight: 600; color: var(--text-dim); margin-bottom: 20px; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
         table { width: 100%; border-collapse: collapse; }
@@ -210,6 +210,10 @@
                     <tbody id="region-list"></tbody>
                 </table>
             </div>
+            <div class="panel">
+                <div class="panel-title">🖥️ SISTEMAS OPERATIVOS</div>
+                <div style="height: 200px; display: flex; justify-content: center; align-items: center;"><canvas id="osChart"></canvas></div>
+            </div>
         </div>
 
         <div class="panel">
@@ -257,7 +261,8 @@
             activeReqs: document.getElementById('active-reqs'),
             uptime: document.getElementById('uptime'),
             trafficChart: document.getElementById('trafficChart'),
-            latencyChart: document.getElementById('latencyChart')
+            latencyChart: document.getElementById('latencyChart'),
+            osChart: document.getElementById('osChart')
         };
 
         // UI Helpers
@@ -293,9 +298,22 @@
         gradient.addColorStop(0, 'rgba(139, 92, 246, 0.5)');
         gradient.addColorStop(1, 'rgba(139, 92, 246, 0.01)');
 
+        let trafficHistory = Array(30).fill(0);
+        try {
+            const savedHistory = localStorage.getItem('tudex_traffic_hist');
+            if (savedHistory) {
+                const parsed = JSON.parse(savedHistory);
+                if (Array.isArray(parsed) && parsed.length === 30) {
+                    trafficHistory = parsed;
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load traffic history', e);
+        }
+
         const trafficChart = new Chart(ctx, {
             type: 'line',
-            data: { labels: Array(30).fill(''), datasets: [{ label: 'Data flow', data: Array(30).fill(0), borderColor: '#8b5cf6', tension: 0.4, fill: true, backgroundColor: gradient }] },
+            data: { labels: Array(30).fill(''), datasets: [{ label: 'Data flow', data: trafficHistory, borderColor: '#8b5cf6', tension: 0.4, fill: true, backgroundColor: gradient }] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }, scales: { y: { display: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { display: false } } }
         });
 
@@ -305,6 +323,14 @@
             type: 'bar',
             data: { labels: [], datasets: [{ label: 'Latency (ms)', data: [], backgroundColor: '#22c55e', borderRadius: 4 }] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { display: true, grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } } } }
+        });
+
+        // OS Chart Init
+        const osCtx = domEls.osChart.getContext('2d');
+        const osChart = new Chart(osCtx, {
+            type: 'doughnut',
+            data: { labels: [], datasets: [{ data: [], backgroundColor: ['#8b5cf6', '#22c55e', '#3b82f6', '#f59e0b', '#ef4444'], borderWidth: 0, hoverOffset: 4 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11 } } } }, cutout: '70%' }
         });
 
         /**
@@ -331,6 +357,12 @@
                 const newNodeListHtml = machines.map(m => `
                     <tr><td><b>${m.givenName}</b></td><td>${m.ipAddresses[0]}</td><td>${m.operatingSystem}</td><td>${m.user.name}</td><td><span class="${m.online ? 'status-up' : 'status-down'}">● ${m.online ? 'UP' : 'OFF'}</span></td></tr>
                 `).join('');
+
+                const osData = machines.reduce((acc, m) => {
+                    const os = m.operatingSystem || 'Unknown';
+                    acc[os] = (acc[os] || 0) + 1;
+                    return acc;
+                }, {});
 
                 // 2. Process HAProxy Stats (Real Traffic)
                 // Procesar Backends (Regiones)
@@ -381,10 +413,21 @@
                     latencyChart.data.datasets[0].backgroundColor = backends.map(b => (b.check_duration > 150 || b.status !== 'UP') ? '#ef4444' : '#22c55e');
                     latencyChart.update();
 
+                    // Update OS Chart
+                    osChart.data.labels = Object.keys(osData);
+                    osChart.data.datasets[0].data = Object.values(osData);
+                    osChart.update();
+
                     if (frontend) {
                         trafficChart.data.datasets[0].data.shift();
                         trafficChart.data.datasets[0].data.push(diff);
                         trafficChart.update();
+
+                        try {
+                            localStorage.setItem('tudex_traffic_hist', JSON.stringify(trafficChart.data.datasets[0].data));
+                        } catch (e) {
+                            console.error('Failed to save traffic history', e);
+                        }
                     }
 
                     if (domEls.loadingOverlay) {

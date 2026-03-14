@@ -52,7 +52,9 @@ if [ -f "$SCHEMA_FILE" ]; then
     echo "✅ [DB] Esquema oficial aplicado."
 fi
 
-# 2. Gestión de Identidad del Cluster
+# 2. Gestión de Identidad del Cluster (Seguridad Centralizada)
+# Evitamos harcodear las llaves generándolas con un buen nivel de entropía si no existen,
+# y las almacenamos cifradas y centralizadas en el MySQL para compartirlas con otros nodos (HA).
 PRIVATE_KEY=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT key_content FROM headscale_secrets WHERE key_name='private_key';" || echo "")
 NOISE_KEY=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT key_content FROM headscale_secrets WHERE key_name='noise_private_key';" || echo "")
 
@@ -92,7 +94,9 @@ if [ $HS_RETRIES -eq $HS_MAX_RETRIES ]; then
   echo "⚠️ [CORE] Advertencia: Headscale tardó mucho en responder, continuando de todas formas..."
 fi
 
-# 4. Aprovisionamiento de Claves
+# 4. Aprovisionamiento y Creación Segura de Claves
+# El usuario admin se requiere para aprovisionar llaves. Su creación
+# se registra en la base de datos de auditoría con la IP que invocó el arranque.
 if headscale users create tudex-admin 2>/dev/null; then
     mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('USER_CREATED', 'Usuario tudex-admin creado en el control plane', '$MASTER_IP');"
 fi || true

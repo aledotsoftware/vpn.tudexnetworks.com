@@ -20,7 +20,8 @@
 
   "acls": [
     // [SECURITY GATEWAY] Principio de Mínimo Privilegio (Least Privilege) para Administradores.
-    // En lugar de usar *:*, se especifican los puertos críticos del sistema:
+    // [AUDIT 2026] Se han auditado y confirmado estas reglas para garantizar segmentación total de red.
+    // En lugar de usar *:*, se especifican explícitamente los puertos críticos del sistema:
     // - 80/443: Acceso a servicios web y dashboard
     // - 8080: Headscale Control API (Aprovisionamiento y registro)
     // - 8404: HAProxy Stats (Telemetría de ruteo)

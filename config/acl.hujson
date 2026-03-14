@@ -50,7 +50,9 @@
   ],
 
   "ssh": [
-    // Permitir a los administradores acceso SSH
+    // [SECURITY GATEWAY] Acceso SSH Restringido
+    // Permitir a los administradores acceso SSH exclusivamente, en línea con el Principio de Menor Privilegio (Least Privilege).
+    // Nota: Esto también requiere que el host de destino tenga habilitado Tailscale SSH.
     {
       "action": "accept",
       "src": ["group:admin"],

@@ -27,6 +27,9 @@ private_key_path: /var/lib/headscale/private.key
 noise:
   private_key_path: /var/lib/headscale/noise_private.key
 
+# --- ACCESOS Y POLÍTICAS DE SEGURIDAD (ACL) ---
+acl_policy_path: /etc/headscale/acl.hujson
+
 # --- LOGGING ---
 log:
   level: info

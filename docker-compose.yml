@@ -15,22 +15,22 @@ services:
       - "traefik.enable=true"
       # Importante: Indicar a Traefik qué red usar
       - "traefik.docker.network=dokploy-network"
-      
+
       # Dashboard
       - "traefik.http.routers.headscale-dash.rule=Host(`vpn.tudexnetworks.com`) && PathPrefix(`/dashboard`)"
       - "traefik.http.routers.headscale-dash.entrypoints=web"
       - "traefik.http.services.headscale-dash.loadbalancer.server.port=80"
-      
+
       # API
       - "traefik.http.routers.headscale-api.rule=Host(`vpn.tudexnetworks.com`) && PathPrefix(`/api`, `/register`, `/apple`, `/windows`, `/oidc`)"
       - "traefik.http.routers.headscale-api.entrypoints=web"
       - "traefik.http.services.headscale-api.loadbalancer.server.port=8080"
-      
+
       # Satélites Mesh
       - "traefik.http.routers.mesh-sites.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.tudexnetworks.com`)"
       - "traefik.http.routers.mesh-sites.entrypoints=web"
       - "traefik.http.services.mesh-sites.loadbalancer.server.port=80"
-      
+
     environment:
       - DB_TYPE=${DB_TYPE:-sqlite3}
       - DB_HOST=${DB_HOST}
@@ -41,7 +41,7 @@ services:
     ports:
       - "8080:8080"
       - "8404:8404"
-      - "41641:41641/udp" # Puerto nativo de Wireguard
+      - "41641:41641/udp"  # Puerto nativo de Wireguard
     volumes:
       - ./config:/etc/headscale
       - headscale_data:/var/lib/headscale
@@ -59,4 +59,3 @@ networks:
 volumes:
   headscale_data:
   headscale_run:
-

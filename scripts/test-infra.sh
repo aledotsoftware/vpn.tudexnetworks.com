@@ -49,7 +49,20 @@ else
     fi
 fi
 
-# 3. Docker Compose config
+# 3. Validar YAML linting
+echo "📝 [TEST] Validando sintaxis de archivos YAML..."
+if command -v yamllint &> /dev/null; then
+    if yamllint .; then
+        echo "✅ [TEST] Todos los archivos YAML pasaron la validación."
+    else
+        echo "❌ [TEST] Se encontraron errores de linting en los archivos YAML."
+        exit 1
+    fi
+else
+    echo "⚠️ [TEST] yamllint no encontrado, saltando validación."
+fi
+
+# 4. Docker Compose config
 echo "🐳 [TEST] Validando Docker Compose..."
 if docker compose config -q; then
     echo "✅ [TEST] Docker Compose válido."

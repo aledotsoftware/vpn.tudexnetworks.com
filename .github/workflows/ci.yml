@@ -1,10 +1,10 @@
 name: CI Infrastructure Checks
 
-on:
+"on":
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   validate-infra:
@@ -23,6 +23,9 @@ jobs:
           sudo cp -r config/errors/* /etc/headscale/errors/ || true
           sudo touch /etc/headscale/dashboard.html
           haproxy -c -f config/haproxy.cfg
+
+      - name: Validate YAML Files
+        run: yamllint .
 
       - name: Validate Docker Compose
         run: docker compose config -q

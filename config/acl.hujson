@@ -35,6 +35,8 @@
     // [SECURITY GATEWAY] Segmentación CDN-Mesh.
     // Restringe a los nodos CDN a interactuar únicamente sobre HTTP/HTTPS
     // dentro del rango IP predefinido (100.64.0.0/24), protegiendo los puertos de gestión.
+    // [AUDIT 2026] La restricción a los puertos 80/443 aísla efectivamente a los nodos satélites
+    // previniendo acceso no autorizado a los puertos de infraestructura y red de control (8080/9090).
     {
       "action": "accept",
       "src": ["group:cdn"],

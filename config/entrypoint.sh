@@ -154,6 +154,7 @@ haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
     while true; do
         if tailscale up --login-server http://localhost:8080 --authkey "$SATELLITE_KEY" --hostname "master-gateway-$MASTER_IP" --advertise-exit-node --accept-routes; then
             echo "✅ [MESH] Link established."
+            mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('NODE_JOIN', 'Gateway unido a la malla (Mesh Link Established)', '$MASTER_IP');" || true
             break
         fi
         echo "⏳ [MESH] Reintentando conexión en 10s (AuthKey might be invalid yet)..."

@@ -37,17 +37,20 @@ fi
 
 echo "✅ [DB] Conexión establecida."
 
+# Descubrimiento de red (Necesario aquí para los logs)
+MASTER_IP=$(ip -4 addr show eth0 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n 1)
+[ -z "$MASTER_IP" ] && MASTER_IP=$(hostname -i | awk '{print $1}')
+MASTER_DOMAIN=$(grep "server_url:" /etc/headscale/config.yaml | awk '{print $2}' | sed 's|https://||' | sed 's|http://||' | sed 's|:.*||')
+
+# Registrar conexión exitosa en la base de datos
+mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('DB_CONNECTED', 'Conexión a MariaDB Backbone establecida exitosamente', '$MASTER_IP');" || true
+
 # Aplicar esquema oficial
 SCHEMA_FILE="/etc/headscale/database/schema.sql"
 if [ -f "$SCHEMA_FILE" ]; then
     mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SCHEMA_FILE"
     echo "✅ [DB] Esquema oficial aplicado."
 fi
-
-# Descubrimiento de red
-MASTER_IP=$(ip -4 addr show eth0 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n 1)
-[ -z "$MASTER_IP" ] && MASTER_IP=$(hostname -i | awk '{print $1}')
-MASTER_DOMAIN=$(grep "server_url:" /etc/headscale/config.yaml | awk '{print $2}' | sed 's|https://||' | sed 's|http://||' | sed 's|:.*||')
 
 # 2. Gestión de Identidad del Cluster
 PRIVATE_KEY=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT key_content FROM headscale_secrets WHERE key_name='private_key';" || echo "")
@@ -90,7 +93,9 @@ if [ $HS_RETRIES -eq $HS_MAX_RETRIES ]; then
 fi
 
 # 4. Aprovisionamiento de Claves
-headscale users create tudex-admin || true
+if headscale users create tudex-admin 2>/dev/null; then
+    mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('USER_CREATED', 'Usuario tudex-admin creado en el control plane', '$MASTER_IP');"
+fi || true
 
 # API Key Dashboard - Verificación de Validez (Self-Healing)
 API_KEY=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -s -e "SELECT key_content FROM headscale_secrets WHERE key_name='api_key';" || echo "")

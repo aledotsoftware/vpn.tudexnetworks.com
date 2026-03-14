@@ -19,7 +19,8 @@ RUN apk add --no-cache \
     tailscale \
     iptables \
     ip6tables && \
-    mkdir -p /etc/headscale /var/lib/headscale /var/run/headscale /usr/local/etc/haproxy
+    mkdir -p /etc/headscale /var/lib/headscale /var/run/headscale /usr/local/etc/haproxy && \
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
 
 # Copiamos el binario compilado/descargado desde la fase builder
 COPY --from=builder /bin/headscale /bin/headscale

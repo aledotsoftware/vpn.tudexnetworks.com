@@ -88,4 +88,3 @@ services:
 volumes:
   headscale_data_alfa:
   headscale_data_beta:
-

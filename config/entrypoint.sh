@@ -14,19 +14,28 @@ if [ ! -c /dev/net/tun ]; then
 fi
 
 # 1. Capa de Datos
-MAX_RETRIES=30
+MAX_RETRIES=15
 RETRY_COUNT=0
 DB_AVAILABLE=false
+BACKOFF_DELAY=1
+MAX_BACKOFF=10
 
-echo "⏳ [DB] Sincronizando con MariaDB Backbone..."
+echo "⏳ [DB] Sincronizando con MariaDB Backbone (con Exponential Backoff)..."
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
   if timeout 5 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" --silent; then
     DB_AVAILABLE=true
     break
   fi
   RETRY_COUNT=$((RETRY_COUNT + 1))
-  echo "⏳ [DB] Reintento $RETRY_COUNT/$MAX_RETRIES..."
-  sleep 2
+
+  echo "⏳ [DB] Reintento $RETRY_COUNT/$MAX_RETRIES (Esperando ${BACKOFF_DELAY}s)..."
+  sleep "$BACKOFF_DELAY"
+
+  # Exponential backoff con límite
+  BACKOFF_DELAY=$((BACKOFF_DELAY * 2))
+  if [ "$BACKOFF_DELAY" -gt "$MAX_BACKOFF" ]; then
+      BACKOFF_DELAY=$MAX_BACKOFF
+  fi
 done
 
 if [ "$DB_AVAILABLE" = "false" ]; then

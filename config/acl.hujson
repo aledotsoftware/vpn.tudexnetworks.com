@@ -33,11 +33,11 @@
       "src": ["group:admin"],
       "dest": ["*:80", "*:443", "*:8080", "*:8404", "*:9090", "*:41641"]
     },
-    // [SECURITY GATEWAY] Regla ICMP Restringida
-    // Permitir ping (ICMP) para diagnóstico entre nodos sin utilizar el puerto comodín (*:0).
+    // [SECURITY GATEWAY] Regla ICMP Restringida y Segmentada (Least Privilege)
+    // Solo permitir ping (ICMP) desde los administradores y nodos de monitoreo, previniendo escaneos laterales no autorizados.
     {
       "action": "accept",
-      "src": ["*"],
+      "src": ["group:admin", "group:monitoring"],
       "proto": "icmp",
       "dst": ["*:*"]
     },

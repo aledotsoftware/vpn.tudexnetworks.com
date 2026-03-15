@@ -94,18 +94,18 @@ if [ -n "$PRIVATE_KEY" ] && [ -n "$NOISE_KEY" ]; then
     echo "✅ [AUTH] Identidad recuperada."
     echo "$PRIVATE_KEY" > /var/lib/headscale/private.key
     echo "$NOISE_KEY" > /var/lib/headscale/noise_private.key
-    mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('IDENTITY_RECOVERY', 'Identidad de red recuperada exitosamente de la base de datos', '$MASTER_IP');"
+    mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('IDENTITY_RECOVERY', 'Identidad de red recuperada exitosamente de la base de datos', '$MASTER_IP');" || true
 else
     echo "🚀 [AUTH] Generando raíz de identidad de malla dinámicamente..."
     # Generar claves aleatorias seguras (64 hex chars = 32 bytes)
     head -c 32 /dev/urandom | xxd -p -c 32 > /var/lib/headscale/private.key
     head -c 32 /dev/urandom | xxd -p -c 32 > /var/lib/headscale/noise_private.key
     mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT IGNORE INTO headscale_secrets (key_name, key_content) VALUES ('private_key', '$(cat /var/lib/headscale/private.key)'), ('noise_private_key', '$(cat /var/lib/headscale/noise_private.key)');"
-    mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('KEY_ROTATION', 'Generación inicial dinámica de claves WireGuard/Noise', '$MASTER_IP');"
+    mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('KEY_ROTATION', 'Generación inicial dinámica de claves WireGuard/Noise', '$MASTER_IP');" || true
 fi
 
 # Registrar carga de ACL en base de datos de auditoría
-mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('ACL_UPDATE', 'Políticas ACL actualizadas y cargadas', '$MASTER_IP');"
+mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('ACL_UPDATE', 'Políticas ACL actualizadas y cargadas', '$MASTER_IP');" || true
 
 # 3. Lanzar Plano de Control (Headscale)
 headscale serve -c /etc/headscale/config.yaml > /var/log/headscale.log 2>&1 &
@@ -131,7 +131,7 @@ fi
 # El usuario admin se requiere para aprovisionar llaves. Su creación
 # se registra en la base de datos de auditoría con la IP que invocó el arranque.
 if headscale users create tudex-admin 2>/dev/null; then
-    mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('USER_CREATED', 'Usuario tudex-admin creado en el control plane', '$MASTER_IP');"
+    mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('USER_CREATED', 'Usuario tudex-admin creado en el control plane', '$MASTER_IP');" || true
 fi || true
 
 # API Key Dashboard - Verificación de Validez (Self-Healing)
@@ -144,7 +144,7 @@ if [ -n "$API_KEY" ]; then
     if [ "$CODE" = "200" ]; then
         VALID_KEY=true
         echo "✅ [AUTH] API Key válida recuperada."
-        mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('API_KEY_RECOVERY', 'API Key de Dashboard validada exitosamente', '$MASTER_IP');"
+        mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('API_KEY_RECOVERY', 'API Key de Dashboard validada exitosamente', '$MASTER_IP');" || true
     fi
 fi
 
@@ -152,7 +152,7 @@ if [ "$VALID_KEY" = "false" ]; then
     echo "🔄 [AUTH] Generando nueva API Key (la anterior no era válida)..."
     API_KEY=$(headscale apikeys create --expiration 3650d | grep -oE "[a-zA-Z0-9._-]+" | tail -n 1)
     mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO headscale_secrets (key_name, key_content) VALUES ('api_key', '$API_KEY') ON DUPLICATE KEY UPDATE key_content='$API_KEY';"
-    mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('KEY_ROTATION', 'Generación de nueva API Key de Dashboard', '$MASTER_IP');"
+    mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('KEY_ROTATION', 'Generación de nueva API Key de Dashboard', '$MASTER_IP');" || true
 fi
 
 # Satellite Pre-AuthKey
@@ -161,7 +161,7 @@ if [ -z "$SATELLITE_KEY" ]; then
     SATELLITE_KEY=$(headscale preauthkeys create -u tudex-admin --reusable --expiration 2160h | grep -oE "[a-f0-9]{48}" || echo "")
     if [ -n "$SATELLITE_KEY" ]; then
         mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO headscale_secrets (key_name, key_content) VALUES ('satellite_auth_key', '$SATELLITE_KEY') ON DUPLICATE KEY UPDATE key_content='$SATELLITE_KEY';"
-        mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('KEY_ROTATION', 'Generación de nueva llave de autenticación de satélites (AuthKey)', '$MASTER_IP');"
+        mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('KEY_ROTATION', 'Generación de nueva llave de autenticación de satélites (AuthKey)', '$MASTER_IP');" || true
     fi
 fi
 
@@ -172,7 +172,7 @@ sed -i "s|%%MASTER_DOMAIN%%|$MASTER_DOMAIN|g" /etc/headscale/dashboard.html
 
 # 6. Activar HAProxy (ANTES de la conexión mesh para evitar bloqueos)
 echo "⚖️ [EDGE] Iniciando HAProxy Gateway..."
-mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('GATEWAY_BOOT', 'HAProxy Edge Gateway iniciado exitosamente con mitigaciones anti-DoS y Anti-Escaneo', '$MASTER_IP');"
+mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('GATEWAY_BOOT', 'HAProxy Edge Gateway iniciado exitosamente con mitigaciones anti-DoS y Anti-Escaneo', '$MASTER_IP');" || true
 haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
 
 # 7. Conexión Mesh en Background (Evita que el boot se cuelgue si el 401 persiste)
@@ -180,7 +180,14 @@ haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
     echo "📡 [MESH] Iniciando motor de enlace..."
     mkdir -p /var/run/tailscale /var/lib/tailscale
     tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock > /var/log/tailscaled.log 2>&1 &
-    sleep 5
+
+    # Active polling para asegurar que el daemon esté listo
+    echo "⏳ [MESH] Esperando inicialización del daemon de tailscale..."
+    TS_RETRIES=0
+    while [ ! -S /var/run/tailscale/tailscaled.sock ] && [ $TS_RETRIES -lt 15 ]; do
+        sleep 1
+        TS_RETRIES=$((TS_RETRIES + 1))
+    done
     
     # Reintentar hasta conectar
     while true; do

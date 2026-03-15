@@ -1,7 +1,7 @@
 # Build stage para descargar dependencias pesadas
 FROM alpine:3.19 AS builder
-RUN apk add --no-cache curl
-RUN curl -L https://github.com/juanfont/headscale/releases/download/v0.22.3/headscale_0.22.3_linux_amd64 -o /bin/headscale && \
+RUN apk add --no-cache curl && \
+    curl -L https://github.com/juanfont/headscale/releases/download/v0.22.3/headscale_0.22.3_linux_amd64 -o /bin/headscale && \
     chmod +x /bin/headscale
 
 # Usamos Alpine como base para tener un shell y gestor de paquetes

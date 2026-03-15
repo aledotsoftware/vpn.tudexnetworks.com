@@ -166,14 +166,9 @@ if [ -z "$SATELLITE_KEY" ]; then
 fi
 
 # 5. Dashboard Patching
-LOGS_HTML=$(mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -N -s -e "SELECT GROUP_CONCAT(CONCAT('[', created_at, '] ', event_type, ': ', description) SEPARATOR '<br>') FROM (SELECT * FROM security_audit ORDER BY id DESC LIMIT 10) as t;" || echo "No logs")
-KEYS_HTML=$(headscale preauthkeys list -u tudex-admin --output json-line | awk '{print "<tr><td><b>" $1 "</b></td><td>" $2 "</td><td>" $3 "</td><td>" $4 "</td></tr>"}' || echo "<tr><td colspan='4'>No active keys</td></tr>")
-
 sed -i "s|%%DASHBOARD_API_KEY%%|$API_KEY|g" /etc/headscale/dashboard.html
 sed -i "s|%%MASTER_IP%%|$MASTER_IP|g" /etc/headscale/dashboard.html
 sed -i "s|%%MASTER_DOMAIN%%|$MASTER_DOMAIN|g" /etc/headscale/dashboard.html
-sed -i "s|%%AUDIT_LOGS%%|$LOGS_HTML|g" /etc/headscale/dashboard.html
-sed -i "s|%%ACTIVE_KEYS%%|$KEYS_HTML|g" /etc/headscale/dashboard.html
 
 # 6. Activar HAProxy (ANTES de la conexión mesh para evitar bloqueos)
 echo "⚖️ [EDGE] Iniciando HAProxy Gateway..."

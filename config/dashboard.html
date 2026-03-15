@@ -411,17 +411,20 @@
                     latencyChart.data.labels = backends.map(b => b.svname);
                     latencyChart.data.datasets[0].data = backends.map(b => b.check_duration || 0);
                     latencyChart.data.datasets[0].backgroundColor = backends.map(b => (b.check_duration > 150 || b.status !== 'UP') ? '#ef4444' : '#22c55e');
-                    latencyChart.update();
+                    // ⚡ Bolt: Disable animation on periodic updates to save CPU
+                    latencyChart.update('none');
 
                     // Update OS Chart
                     osChart.data.labels = Object.keys(osData);
                     osChart.data.datasets[0].data = Object.values(osData);
-                    osChart.update();
+                    // ⚡ Bolt: Disable animation on periodic updates to save CPU
+                    osChart.update('none');
 
                     if (frontend) {
                         trafficChart.data.datasets[0].data.shift();
                         trafficChart.data.datasets[0].data.push(diff);
-                        trafficChart.update();
+                        // ⚡ Bolt: Disable animation on periodic updates to save CPU
+                        trafficChart.update('none');
 
                         try {
                             localStorage.setItem('tudex_traffic_hist', JSON.stringify(trafficChart.data.datasets[0].data));

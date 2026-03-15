@@ -17,3 +17,6 @@
 ## 2024-06-22 - [Batching DOM Mutations with `requestAnimationFrame`]
 **Learning:** [Making multiple sequential updates to the DOM (like modifying `.innerText` or `.innerHTML` on multiple elements) in a synchronous block of code can trigger layout thrashing and forced synchronous layouts, causing jank and degraded rendering performance.]
 **Action:** [Wrap multiple DOM mutations inside a single `requestAnimationFrame()` callback. This batches the updates together, allowing the browser to optimize the rendering process and apply all changes simultaneously right before the next repaint, significantly improving visual smoothness.]
+## 2024-05-15 - [Chart.js Periodic Animations CPU Fix]
+**Learning:** By default, Chart.js executes animations on every update (`chart.update()`). In a live monitoring dashboard (like a NOC dashboard) where data is fetched and updated every few seconds via `setInterval` or `requestAnimationFrame`, this constant re-animation causes unnecessary continuous layouts, reflows, repaints, and high CPU usage.
+**Action:** Always use `chart.update('none')` when updating charts with high-frequency periodic data (e.g. real-time telemetry) to suppress the animation and significantly lower resource consumption.

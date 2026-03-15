@@ -9,7 +9,8 @@ if command -v shellcheck &> /dev/null; then
     shellcheck config/entrypoint.sh
     echo "✅ [TEST] Entrypoint validado."
 else
-    echo "⚠️ [TEST] shellcheck no encontrado, saltando."
+    echo "❌ [TEST] shellcheck no encontrado. Instálalo nativamente (ej. sudo apt-get install -y shellcheck)."
+    exit 1
 fi
 
 # 2. HAProxy config check
@@ -31,22 +32,8 @@ if command -v haproxy &> /dev/null; then
         exit 1
     fi
 else
-    echo "⚠️ [TEST] haproxy no encontrado localmente, intentando usar docker..."
-    if docker run --rm \
-        -v "$(pwd)/config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro" \
-        -v "/tmp/etc/headscale/dashboard.html:/etc/headscale/dashboard.html:ro" \
-        -v "$(pwd)/config/errors:/etc/headscale/errors:ro" \
-        haproxy:alpine haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg &> /dev/null; then
-        echo "✅ [TEST] HAProxy config correcta."
-    else
-        echo "❌ [TEST] Error en HAProxy config."
-        docker run --rm \
-            -v "$(pwd)/config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro" \
-            -v "/tmp/etc/headscale/dashboard.html:/etc/headscale/dashboard.html:ro" \
-            -v "$(pwd)/config/errors:/etc/headscale/errors:ro" \
-            haproxy:alpine haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg || true
-        exit 1
-    fi
+    echo "❌ [TEST] haproxy no encontrado. Instálalo nativamente (ej. sudo apt-get install -y haproxy) para evitar límites de descarga de Docker Hub en pruebas."
+    exit 1
 fi
 
 # 3. Validar YAML linting
@@ -59,7 +46,8 @@ if command -v yamllint &> /dev/null; then
         exit 1
     fi
 else
-    echo "⚠️ [TEST] yamllint no encontrado, saltando validación."
+    echo "❌ [TEST] yamllint no encontrado. Instálalo nativamente (ej. sudo apt-get install -y yamllint)."
+    exit 1
 fi
 
 # 4. Docker Compose config

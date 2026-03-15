@@ -8,14 +8,13 @@ RUN curl -L https://github.com/juanfont/headscale/releases/download/v0.22.3/head
 FROM alpine:3.19
 
 # Instalamos HAProxy y dependencias
-# Generamos directorios necesarios
+# Generamos directorios necesarios (sin wget ya que no se usa)
 RUN apk add --no-cache \
     haproxy \
     mariadb-client \
     mariadb-connector-c \
     ca-certificates \
     curl \
-    wget \
     tailscale \
     iptables \
     ip6tables && \

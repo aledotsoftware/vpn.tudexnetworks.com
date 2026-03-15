@@ -1,34 +1,25 @@
-name: CI Infrastructure Checks
+name: CI Pipeline
 
-"on":
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+"on": [push, pull_request]
 
 jobs:
-  validate-infra:
+  test-infrastructure:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Shellcheck entrypoint
-        run: shellcheck config/entrypoint.sh
+      - name: Install dependencies natively
+        run: sudo apt-get update && sudo apt-get install -y haproxy shellcheck yamllint
 
-      - name: Validate HAProxy Config
+      - name: Ensure CI specific HAProxy Mock paths
         run: |
-          sudo apt-get update
-          sudo apt-get install -y haproxy
           sudo mkdir -p /etc/headscale/errors
           sudo cp -r config/errors/* /etc/headscale/errors/ || true
           sudo touch /etc/headscale/dashboard.html
-          haproxy -c -f config/haproxy.cfg
 
-      - name: Validate YAML Files
-        run: yamllint .
-
-      - name: Validate Docker Compose
-        run: docker compose config -q
+      - name: Run infrastructure tests
+        run: bash scripts/test-infra.sh
 
       - name: Docker Build Test
         run: docker build -t tudex-gateway-test .

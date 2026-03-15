@@ -2,7 +2,18 @@
 set -e
 
 # Securely pass database password without exposing it in the process list
-export MYSQL_PWD="$DB_PASS"
+# Soporte para Docker Secrets y variables de entorno tradicionales
+if [ -f "/run/secrets/db_pass" ]; then
+    MYSQL_PWD="$(cat /run/secrets/db_pass)"
+    export MYSQL_PWD
+else
+    export MYSQL_PWD="$DB_PASS"
+fi
+
+if [ -f "/run/secrets/db_user" ]; then
+    DB_USER="$(cat /run/secrets/db_user)"
+    export DB_USER
+fi
 
 # Configurar trap para salir limpiamente
 trap 'echo "🛑 Recibido SIGTERM/SIGINT. Saliendo..."; mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('\''GATEWAY_SHUTDOWN'\'', '\''Gateway detenido exitosamente'\'', '\''$MASTER_IP'\'');" 2>/dev/null || true; kill $(jobs -p) 2>/dev/null; exit 0' TERM INT
@@ -19,6 +30,9 @@ fi
 # Intentar registrar la creación de la interfaz TUN de forma aislada (no fatal) para auditoría.
 # En este punto MASTER_IP podría no estar descubierto aún, usamos localhost como fallback.
 mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('TUN_INITIALIZED', 'Interfaz de túnel VPN asegurada e inicializada', '127.0.0.1');" 2>/dev/null || true
+
+# Auditoría de gestión de secretos Docker (falla silenciada para no romper container al inicio de CI)
+mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('SECRETS_LOADED', 'Credenciales cacheadas de manera aislada (Entorno / Secrets)', '127.0.0.1');" || true
 
 # 1. Capa de Datos
 MAX_RETRIES=15
@@ -89,6 +103,9 @@ else
     mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT IGNORE INTO headscale_secrets (key_name, key_content) VALUES ('private_key', '$(cat /var/lib/headscale/private.key)'), ('noise_private_key', '$(cat /var/lib/headscale/noise_private.key)');"
     mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('KEY_ROTATION', 'Generación inicial dinámica de claves WireGuard/Noise', '$MASTER_IP');"
 fi
+
+# Registrar carga de ACL en base de datos de auditoría
+mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('ACL_UPDATE', 'Políticas ACL actualizadas y cargadas', '$MASTER_IP');"
 
 # 3. Lanzar Plano de Control (Headscale)
 headscale serve -c /etc/headscale/config.yaml > /var/log/headscale.log 2>&1 &

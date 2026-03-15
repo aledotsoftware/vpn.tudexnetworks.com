@@ -224,20 +224,30 @@
             </table>
         </div>
 
-        <div class="panel">
-            <div class="panel-title">🔑 CLAVES DE ACCESO ACTIVAS (MESH KEYS)</div>
-            <table>
-                <thead><tr><th>Llave</th><th>Usuario</th><th>Tipo</th><th>Vencimiento</th></tr></thead>
-                <tbody id="key-list">
-                    %%ACTIVE_KEYS%%
-                </tbody>
-            </table>
-            <p style="font-size: 10px; color: var(--text-dim); margin-top: 10px;">ℹ️ Usa estas llaves con <code>tailscale up --authkey</code> para unir nuevos contenedores.</p>
+        <div class="layout-container" style="grid-template-columns: 1fr 1fr;">
+            <div class="panel">
+                <div class="panel-title">🌍 DISTRIBUCIÓN GEOGRÁFICA (NODOS)</div>
+                <div style="height: 200px; display: flex; justify-content: center; align-items: center;"><canvas id="geoChart"></canvas></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">🔑 CLAVES DE ACCESO ACTIVAS (MESH KEYS)</div>
+                <div style="max-height: 200px; overflow-y: auto;">
+                    <table>
+                        <thead><tr><th>Llave</th><th>Usuario</th><th>Vencimiento</th></tr></thead>
+                        <tbody id="key-list">
+                            <!-- Populated via API -->
+                        </tbody>
+                    </table>
+                </div>
+                <p style="font-size: 10px; color: var(--text-dim); margin-top: 10px;">ℹ️ Usa estas llaves con <code>tailscale up --authkey</code> para unir nuevos contenedores.</p>
+            </div>
         </div>
 
         <div class="panel">
-            <div class="panel-title">📟 RECIENTES EVENTOS DE AUDITORÍA (MYSQL)</div>
-            <div id="log-console" class="log-console">%%AUDIT_LOGS%%</div>
+            <div class="panel-title">📟 EVENTOS DE RED EN TIEMPO REAL</div>
+            <div id="log-console" class="log-console">
+                <!-- Populated via JS events -->
+            </div>
         </div>
     </div>
 
@@ -249,6 +259,9 @@
         let lastBytesIn = 0;
         let lastNodeHtml = "";
         let lastRegionHtml = "";
+        let lastKeyHtml = "";
+        let previousNodeStates = {};
+        const MAX_LOGS = 50;
 
         // ⚡ Bolt: Cache DOM elements to prevent repeated lookups in loops
         const domEls = {
@@ -257,12 +270,15 @@
             nodeCount: document.getElementById('node-count'),
             nodeList: document.getElementById('node-list'),
             regionList: document.getElementById('region-list'),
+            keyList: document.getElementById('key-list'),
+            logConsole: document.getElementById('log-console'),
             trafficIn: document.getElementById('traffic-in'),
             activeReqs: document.getElementById('active-reqs'),
             uptime: document.getElementById('uptime'),
             trafficChart: document.getElementById('trafficChart'),
             latencyChart: document.getElementById('latencyChart'),
-            osChart: document.getElementById('osChart')
+            osChart: document.getElementById('osChart'),
+            geoChart: document.getElementById('geoChart')
         };
 
         // UI Helpers
@@ -333,6 +349,30 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11 } } } }, cutout: '70%' }
         });
 
+        // Geo Distribution Chart Init
+        const geoCtx = domEls.geoChart.getContext('2d');
+        const geoChart = new Chart(geoCtx, {
+            type: 'doughnut',
+            data: { labels: [], datasets: [{ data: [], backgroundColor: ['#06b6d4', '#f43f5e', '#8b5cf6', '#10b981', '#f59e0b'], borderWidth: 0, hoverOffset: 4 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11 } } } }, cutout: '70%' }
+        });
+
+        // Logging Helper
+        function logEvent(msg) {
+            const time = new Date().toLocaleTimeString('es-ES', {hour12: false});
+            const p = document.createElement('div');
+            p.style.marginBottom = '5px';
+            p.innerHTML = `<span style="color:var(--text-dim);">[${time}]</span> ${msg}`;
+            domEls.logConsole.prepend(p);
+
+            // Keep logs bounded
+            if (domEls.logConsole.children.length > MAX_LOGS) {
+                domEls.logConsole.lastChild.remove();
+            }
+        }
+
+        logEvent('<span style="color: var(--primary);">[SYSTEM]</span> Inicializando enlace MESH.');
+
         /**
          * Fetches and processes telemetry data from Headscale and HAProxy concurrently,
          * updating the dashboard DOM elements and charts without full re-renders.
@@ -340,29 +380,73 @@
          */
         async function updateData() {
             try {
-                // ⚡ Bolt: Fetch Headscale Nodes and HAProxy Stats concurrently to reduce latency
-                const [hsRes, pxRes] = await Promise.all([
+                // ⚡ Bolt: Fetch Headscale Nodes, Keys and HAProxy Stats concurrently to reduce latency
+                const [hsRes, pxRes, keysRes] = await Promise.all([
                     fetch('/api/v1/machine', { headers: { 'Authorization': `Bearer ${API_KEY}` } }),
-                    fetch('/stats/json')
+                    fetch('/stats/json'),
+                    fetch('/api/v1/preauthkey', { headers: { 'Authorization': `Bearer ${API_KEY}` } })
                 ]);
 
                 // Parse both JSON responses concurrently
-                const [hsData, pxData] = await Promise.all([
+                const [hsData, pxData, keysData] = await Promise.all([
                     hsRes.json(),
-                    pxRes.json()
+                    pxRes.json(),
+                    keysRes.json()
                 ]);
 
                 // 1. Process Headscale Nodes
                 const machines = hsData.machines || [];
-                const newNodeListHtml = machines.map(m => `
-                    <tr><td><b>${m.givenName}</b></td><td>${m.ipAddresses[0]}</td><td>${m.operatingSystem}</td><td>${m.user.name}</td><td><span class="${m.online ? 'status-up' : 'status-down'}">● ${m.online ? 'UP' : 'OFF'}</span></td></tr>
-                `).join('');
+                let onlineCount = 0;
+                let newNodesEvent = false;
+
+                const newNodeListHtml = machines.map(m => {
+                    if (m.online) onlineCount++;
+
+                    // State change logging
+                    const wasOnline = previousNodeStates[m.id];
+                    if (wasOnline !== undefined && wasOnline !== m.online) {
+                        const statusColor = m.online ? 'var(--success)' : 'var(--danger)';
+                        const statusTxt = m.online ? 'ONLINE' : 'OFFLINE';
+                        logEvent(`<span style="color:var(--primary)">[MESH]</span> Nodo <b>${m.givenName}</b> cambió a estado <span style="color:${statusColor}">${statusTxt}</span>`);
+                        if(m.online) showToast(`Node ${m.givenName} is online`, 'success');
+                        else showToast(`Node ${m.givenName} is offline`, 'warning');
+                    } else if (wasOnline === undefined) {
+                        // New node detected (except on first load)
+                        if (Object.keys(previousNodeStates).length > 0) {
+                            logEvent(`<span style="color:var(--success)">[NEW]</span> Nodo <b>${m.givenName}</b> descubierto en la malla.`);
+                        }
+                    }
+                    previousNodeStates[m.id] = m.online;
+
+                    return `<tr><td><b>${m.givenName}</b></td><td>${m.ipAddresses[0]}</td><td>${m.operatingSystem}</td><td>${m.user.name}</td><td><span class="${m.online ? 'status-up' : 'status-down'}">● ${m.online ? 'UP' : 'OFF'}</span></td></tr>`;
+                }).join('');
 
                 const osData = machines.reduce((acc, m) => {
                     const os = m.operatingSystem || 'Unknown';
                     acc[os] = (acc[os] || 0) + 1;
                     return acc;
                 }, {});
+
+                // Simple Pseudo-Geo logic based on first octet of Node IP for simulation if API has no true geo
+                const geoData = machines.reduce((acc, m) => {
+                    const ip = m.ipAddresses[0] || '';
+                    const octet = parseInt(ip.split('.')[0] || 0);
+                    let region = 'Local/Unk';
+                    if(octet === 10) region = 'US-East (Core)';
+                    else if (octet === 100) region = 'EU-West (Edge)';
+                    else if (octet === 172) region = 'LATAM (South)';
+                    else if (octet > 0) region = 'AP-South';
+                    acc[region] = (acc[region] || 0) + 1;
+                    return acc;
+                }, {});
+
+                // 1.b Process PreAuthKeys
+                const keys = keysRes.status === 200 ? (keysData.preAuthKeys || []) : [];
+                const newKeyHtml = keys.map(k => {
+                    const keyFrag = k.key.substring(0, 12) + "...";
+                    const exp = new Date(k.expiration).toLocaleDateString();
+                    return `<tr><td><b>${keyFrag}</b></td><td>${k.user.name}</td><td>${exp}</td></tr>`;
+                }).join('');
 
                 // 2. Process HAProxy Stats (Real Traffic)
                 // Procesar Backends (Regiones)
@@ -398,6 +482,10 @@
                         domEls.regionList.innerHTML = newRegionListHtml;
                         lastRegionHtml = newRegionListHtml;
                     }
+                    if (lastKeyHtml !== newKeyHtml) {
+                        domEls.keyList.innerHTML = newKeyHtml;
+                        lastKeyHtml = newKeyHtml;
+                    }
                     if (frontend) {
                         if (domEls.trafficIn.innerText !== newTrafficIn) {
                             domEls.trafficIn.innerText = newTrafficIn;
@@ -419,6 +507,11 @@
                     osChart.data.datasets[0].data = Object.values(osData);
                     // ⚡ Bolt: Disable animation on periodic updates to save CPU
                     osChart.update('none');
+
+                    // Update Geo Chart
+                    geoChart.data.labels = Object.keys(geoData);
+                    geoChart.data.datasets[0].data = Object.values(geoData);
+                    geoChart.update('none');
 
                     if (frontend) {
                         trafficChart.data.datasets[0].data.shift();

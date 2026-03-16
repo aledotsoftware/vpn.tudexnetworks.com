@@ -249,13 +249,13 @@
 
         <div class="panel">
             <div class="panel-title">📟 EVENTOS DE RED EN TIEMPO REAL</div>
-            <div id="log-console" class="log-console">
+            <div id="log-console" class="log-console" aria-live="polite" aria-atomic="false">
                 <!-- Populated via JS events -->
             </div>
         </div>
     </div>
 
-    <div id="toast-container" class="toast-container"></div>
+    <div id="toast-container" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
 
     <script>
         const API_KEY = "%%DASHBOARD_API_KEY%%";
@@ -362,6 +362,11 @@
         });
 
         // Logging Helper
+        /**
+         * Appends a new formatted log message to the log console with a timestamp.
+         * Maintains a maximum number of logs to prevent memory leaks and DOM bloat.
+         * @param {string} msg - The log message to append (can include HTML).
+         */
         function logEvent(msg) {
             const time = new Date().toLocaleTimeString('es-ES', {hour12: false});
             const p = document.createElement('div');

@@ -31,7 +31,7 @@
     {
       "action": "accept",
       "src": ["group:admin"],
-      "dest": ["*:80", "*:443", "*:8080", "*:8404", "*:9090", "*:41641"]
+      "dst": ["*:80", "*:443", "*:8080", "*:8404", "*:9090", "*:41641"]
     },
     // [SECURITY GATEWAY] Regla ICMP Restringida y Segmentada (Least Privilege)
     // Solo permitir ping (ICMP) desde los administradores y nodos de monitoreo, previniendo escaneos laterales no autorizados.
@@ -49,7 +49,7 @@
     {
       "action": "accept",
       "src": ["group:cdn"],
-      "dest": ["cdn-mesh:80", "cdn-mesh:443"]
+      "dst": ["cdn-mesh:80", "cdn-mesh:443"]
     },
     // [SECURITY GATEWAY] Aislamiento de Monitorización.
     // El grupo de monitorización tiene acceso exclusivo al endpoint de métricas Prometheus
@@ -57,7 +57,7 @@
     {
       "action": "accept",
       "src": ["group:monitoring"],
-      "dest": ["core-mesh:9090"]
+      "dst": ["core-mesh:9090"]
     }
   ],
 

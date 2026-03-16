@@ -61,6 +61,7 @@ done
 
 if [ "$DB_AVAILABLE" = "false" ]; then
   echo "❌ [DB] Error crítico: No se pudo conectar a la base de datos después de $MAX_RETRIES intentos."
+  echo "[$(date -u)] SECURITY_AUDIT - EVENT: DB_ERROR - Fallo crítico de conexión a MariaDB Backbone al arrancar (IP Source: 127.0.0.1)" >> /var/log/headscale_security_audit.log
   echo "⚠️ Saliendo del proceso de inicio. Verifica la configuración de la BD."
   exit 1
 fi

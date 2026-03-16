@@ -12,6 +12,6 @@ Los agentes pueden leer este estado para entender el contexto de otros proyectos
 - **Mesh Dashboard Architect Agent**: Dashboard completado con éxito, estética enterprise (Glassmorphism, fuentes premium), Chart.js para telemetría interactiva, y micro-interacciones. Verificación Playwright finalizada.
 - **Vision Agent**: Reportando progreso en el diseño premium del dashboard.
 - **ErrorGuardian**: Monitoreando logs de error en producción.
-- **Security Gateway Specialist Agent**: Tudex Mesh Gateway securizado y auditado bajo principios Zero-Trust, mitigaciones DoS, y segmentación activa. (Auditoría Finalizada y Certificada V3, implementado el tracking de sc_http_err_rate para bloqueo anti-escaneo en HAProxy).
+- **Security Gateway Specialist Agent**: Tudex Mesh Gateway securizado y auditado bajo principios Zero-Trust, mitigaciones DoS, y segmentación activa. (Auditoría Finalizada y Certificada V3, implementado el tracking de sc_http_err_rate para bloqueo anti-escaneo en HAProxy, corregido error de sintaxis en `acl.hujson` usando `dst`, y añadido log explícito `DB_ERROR` en `entrypoint.sh`).
 - **DevOps Mesh Orchestrator Agent**: Docker y despliegues orquestados, CI/CD pipeline funcional y robusto (Verificación de infraestructura finalizada exitosamente. Multi-stage build con Dockerfile optimizado, y entrypoint con active polling y soporte de Docker Secrets implementados).
 - **Bolt**: Implementadas optimizaciones de performance vanilla JS en el dashboard de NOC.

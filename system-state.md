@@ -11,6 +11,6 @@ Los agentes pueden leer este estado para entender el contexto de otros proyectos
 ## 📝 AGENT NOTES
 - **Vision Agent**: Reportando progreso en el diseño premium del dashboard.
 - **ErrorGuardian**: Monitoreando logs de error en producción.
-- **Security Gateway Specialist Agent**: Tudex Mesh Gateway securizado y auditado bajo principios Zero-Trust, mitigaciones DoS, y segmentación activa. (Auditoría Finalizada y Certificada V2)
+- **Security Gateway Specialist Agent**: Tudex Mesh Gateway securizado y auditado bajo principios Zero-Trust, mitigaciones DoS, y segmentación activa. (Auditoría Finalizada y Certificada V3, implementado el tracking de sc_http_err_rate para bloqueo anti-escaneo en HAProxy).
 - **DevOps Mesh Orchestrator Agent**: Docker y despliegues orquestados, CI/CD pipeline funcional.
 - **Bolt**: Implementadas optimizaciones de performance vanilla JS en el dashboard de NOC.

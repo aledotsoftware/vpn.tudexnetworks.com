@@ -27,13 +27,6 @@ if [ ! -c /dev/net/tun ]; then
     mknod /dev/net/tun c 10 200 || true
 fi
 
-# Intentar registrar la creación de la interfaz TUN de forma aislada (no fatal) para auditoría.
-# En este punto MASTER_IP podría no estar descubierto aún, usamos localhost como fallback.
-mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('TUN_INITIALIZED', 'Interfaz de túnel VPN asegurada e inicializada', '127.0.0.1');" 2>/dev/null || true
-
-# Auditoría de gestión de secretos Docker (falla silenciada para no romper container al inicio de CI)
-mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('SECRETS_LOADED', 'Credenciales cacheadas de manera aislada (Entorno / Secrets)', '127.0.0.1');" || true
-
 # 1. Capa de Datos
 MAX_RETRIES=15
 RETRY_COUNT=0
@@ -82,6 +75,12 @@ if [ -f "$SCHEMA_FILE" ]; then
     mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" < "$SCHEMA_FILE"
     echo "✅ [DB] Esquema oficial aplicado."
 fi
+
+# Intentar registrar la creación de la interfaz TUN de forma aislada (no fatal) para auditoría.
+mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('TUN_INITIALIZED', 'Interfaz de túnel VPN asegurada e inicializada', '$MASTER_IP');" 2>/dev/null || true
+
+# Auditoría de gestión de secretos Docker (falla silenciada para no romper container al inicio de CI)
+mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('SECRETS_LOADED', 'Credenciales cacheadas de manera aislada (Entorno / Secrets)', '$MASTER_IP');" || true
 
 # 2. Gestión de Identidad del Cluster (Seguridad Centralizada)
 # Evitamos harcodear las llaves generándolas con un buen nivel de entropía si no existen,

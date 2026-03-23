@@ -23,17 +23,18 @@ while [ ! -S /var/run/tailscale/tailscaled.sock ] && [ $TS_RETRIES -lt 15 ]; do
     TS_RETRIES=$((TS_RETRIES + 1))
 done
 
-# 2. Conexión Mesh (Headscale)
+# 2. Conexión Mesh (Headscale) en segundo plano para no bloquear Apache
 echo "📡 [MESH] Intentando unión a la malla: $NODE_NAME..."
-# Reintentar hasta conectar con el Gateway Maestro
-while true; do
-    if tailscale up --login-server "$VPN_SERVER_URL" --authkey "$VPN_AUTH_KEY" --hostname "$NODE_NAME" --accept-routes; then
-        echo "✅ [MESH] Conexión establecida con $VPN_SERVER_URL."
-        break
-    fi
-    echo "⏳ [MESH] Reintentando conexión en 10s (El servidor maestro podría estar arrancando)..."
-    sleep 10
-done
+(
+    while true; do
+        if tailscale up --login-server "$VPN_SERVER_URL" --authkey "$VPN_AUTH_KEY" --hostname "$NODE_NAME" --accept-routes --accept-dns=false; then
+            echo "✅ [MESH] Conexión establecida con $VPN_SERVER_URL."
+            break
+        fi
+        echo "⏳ [MESH] Reintentando conexión en 10s..."
+        sleep 10
+    done
+) &
 
 # 3. Lanzar Apache (PHP)
 echo "🌐 [WEB] Iniciando servidor PHP..."

@@ -1,8 +1,31 @@
 services:
-  headscale:
-    build: .
-    container_name: headscale_control
+  # --- BASE DE DATOS LOCAL (PARA LAB) ---
+  # Evita problemas de Access Denied por IP en Hostinger.
+  db:
+    image: mariadb:10.11
+    container_name: tudex_db
     restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=tudex_mesh_db
+      - MYSQL_USER=tudex_user
+      - MYSQL_PASSWORD=tudex_pass
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - tudex_mesh_net
+
+  # --- SERVIDOR MAESTRO (GATEWAY EDGE) ---
+  gateway:
+    build: .
+    container_name: tudex_gateway
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -11,48 +34,68 @@ services:
       - net.ipv6.conf.all.forwarding=1
     devices:
       - /dev/net/tun:/dev/net/tun
-    labels:
-      - "traefik.enable=true"
-      # Importante: Indicar a Traefik qué red usar
-      - "traefik.docker.network=dokploy-network"
-
-      # Dashboard
-      - "traefik.http.routers.headscale-dash.rule=Host(`vpn.tudexnetworks.com`) && PathPrefix(`/dashboard`)"
-      - "traefik.http.routers.headscale-dash.entrypoints=web"
-      - "traefik.http.services.headscale-dash.loadbalancer.server.port=80"
-
-      # API
-      - "traefik.http.routers.headscale-api.rule=Host(`vpn.tudexnetworks.com`) && PathPrefix(`/api`, `/register`, `/apple`, `/windows`, `/oidc`)"
-      - "traefik.http.routers.headscale-api.entrypoints=web"
-      - "traefik.http.services.headscale-api.loadbalancer.server.port=8080"
-
-      # Satélites Mesh
-      - "traefik.http.routers.mesh-sites.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.tudexnetworks.com`)"
-      - "traefik.http.routers.mesh-sites.entrypoints=web"
-      - "traefik.http.services.mesh-sites.loadbalancer.server.port=80"
-
     environment:
-      - DB_TYPE=${DB_TYPE}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
+      - DB_TYPE=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=tudex_mesh_db
+      - DB_USER=tudex_user
+      - DB_PASS=tudex_pass
+      - MASTER_DOMAIN=vpn.internal
     ports:
-      - "8080:8080"
-      - "8404:8404"
-      - "41641:41641/udp"  # Puerto nativo de Wireguard
+      - "8081:80"        # HAProxy Edge
+      - "8080:8080"      # Headscale Control Plane
+      - "8404:8404"      # HAProxy Stats
+      - "41641:41641/udp" # WireGuard Port
     volumes:
       - ./config:/etc/headscale
+      - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
       - headscale_data:/var/lib/headscale
       - headscale_run:/var/run/headscale
     networks:
-      - dokploy-network
+      - tudex_mesh_net
+
+  # --- NODO SATÉLITE 01 (PHP APP) ---
+  node-01:
+    build: ./satellite
+    container_name: node_01
+    restart: always
+    depends_on:
+      gateway:
+        condition: service_started
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - NODE_NAME=node-01
+      - VPN_SERVER_URL=http://gateway:8080
+      - VPN_AUTH_KEY=${TS_AUTHKEY}
+    networks:
+      - tudex_mesh_net
+
+  # --- NODO SATÉLITE 02 (PHP APP) ---
+  node-02:
+    build: ./satellite
+    container_name: node_02
+    restart: always
+    depends_on:
+      gateway:
+        condition: service_started
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - NODE_NAME=node-02
+      - VPN_SERVER_URL=http://gateway:8080
+      - VPN_AUTH_KEY=${TS_AUTHKEY}
+    networks:
       - tudex_mesh_net
 
 networks:
-  dokploy-network:
-    external: true
   tudex_mesh_net:
     driver: bridge
 

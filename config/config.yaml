@@ -2,7 +2,7 @@
 # TUDEX NETWORKS - CONFIGURACIÓN CORE DE HEADSCALE
 # ============================================================
 
-server_url: https://vpn.tudexnetworks.com
+server_url: http://gateway:8080
 listen_addr: 0.0.0.0:8080
 metrics_listen_addr: 0.0.0.0:9090
 

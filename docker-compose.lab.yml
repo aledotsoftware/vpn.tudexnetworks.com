@@ -17,9 +17,12 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
+      - VPN_IP_PREFIX=${VPN_IP_PREFIX_ALFA}
+      - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN}
+      - VPN_SERVER_URL=http://gateway_alfa:8080
     ports:
       - "8081:80"
-      - "8080:8080"
+      - "8082:8080"
     volumes:
       - ./config:/etc/headscale
       - headscale_data_alfa:/var/lib/headscale
@@ -42,6 +45,9 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
+      - VPN_IP_PREFIX=${VPN_IP_PREFIX_BETA}
+      - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN}
+      - VPN_SERVER_URL=http://gateway_beta:8080
     ports:
       - "8181:80"
       - "8180:8080"

@@ -107,6 +107,16 @@ fi
 # Registrar carga de ACL en base de datos de auditoría
 mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('ACL_UPDATE', 'Políticas ACL actualizadas y cargadas', '$MASTER_IP');" || true
 
+# Configuración Dinámica de Headscale (desde variables de entorno)
+[ -z "$VPN_SERVER_URL" ] && VPN_SERVER_URL="http://localhost:8080"
+[ -z "$VPN_IP_PREFIX" ] && VPN_IP_PREFIX="100.64.0.0/10"
+[ -z "$VPN_BASE_DOMAIN" ] && VPN_BASE_DOMAIN="vpn.internal"
+
+echo "⚙️ [CONFIG] Inyectando configuración: URL=$VPN_SERVER_URL, Subnet=$VPN_IP_PREFIX"
+sed -i "s|%%VPN_SERVER_URL%%|$VPN_SERVER_URL|g" /etc/headscale/config.yaml
+sed -i "s|%%VPN_IP_PREFIX%%|$VPN_IP_PREFIX|g" /etc/headscale/config.yaml
+sed -i "s|%%VPN_BASE_DOMAIN%%|$VPN_BASE_DOMAIN|g" /etc/headscale/config.yaml
+
 # 3. Lanzar Plano de Control (Headscale)
 headscale serve -c /etc/headscale/config.yaml > /var/log/headscale.log 2>&1 &
 HS_PID=$!

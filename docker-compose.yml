@@ -39,9 +39,11 @@ services:
       - DB_HOST=db
       - DB_PORT=3306
       - DB_NAME=tudex_mesh_db
-      - DB_USER=tudex_user
-      - DB_PASS=tudex_pass
-      - MASTER_DOMAIN=vpn.internal
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - VPN_IP_PREFIX=${VPN_IP_PREFIX:-100.64.0.0/10}
+      - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN:-vpn.internal}
+      - VPN_SERVER_URL=https://vpn.tudexnetworks.com
     ports:
       - "8081:80"        # HAProxy Edge
       - "8080:8080"      # Headscale Control Plane

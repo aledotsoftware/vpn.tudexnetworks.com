@@ -1,34 +1,31 @@
 #!/bin/bash
-set -e
+# set -e  # Desactivar temporalmente para depuración
 
-echo "🚀 TUDEX SATELLITE NODE - BOOT SEQUENCER"
+echo "🚀 TUDEX SATELLITE NODE - DEBUG BOOT"
 
-# 0. Asegurar dispositivo TUN
+# 0. TUN
 if [ ! -c /dev/net/tun ]; then
     echo "🔧 Creando interfaz TUN..."
     mkdir -p /dev/net
     mknod /dev/net/tun c 10 200 || true
 fi
 
-# 1. Iniciar Tailscaled en segundo plano
-echo "📡 [MESH] Iniciando motor de enlace..."
-mkdir -p /var/run/tailscale /var/lib/tailscale
+# 1. Tailscaled
+echo "📡 [MESH] Iniciando motor de enlace (Daemon)..."
 tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock > /var/log/tailscaled.log 2>&1 &
 
-# Active polling para asegurar que el daemon esté listo
-echo "⏳ [MESH] Esperando inicialización del daemon de tailscale..."
-TS_RETRIES=0
-while [ ! -S /var/run/tailscale/tailscaled.sock ] && [ $TS_RETRIES -lt 15 ]; do
-    sleep 1
-    TS_RETRIES=$((TS_RETRIES + 1))
-done
+# 2. Apache
+echo "🌐 [WEB] Iniciando Apache (Foreground)..."
+# Lanzar Apache primero para asegurar que el balanceo por Docker funcione
+apache2-foreground &
+APACHE_PID=$!
 
-# 2. Conexión Mesh (Headscale) en segundo plano para no bloquear Apache
-echo "📡 [MESH] Intentando unión a la malla: $NODE_NAME..."
+# 3. Tailscale Join (Background Loop)
+echo "📡 [MESH] Iniciando bucle de unión a la malla..."
 (
     while true; do
-        if tailscale up --login-server "$VPN_SERVER_URL" --authkey "$VPN_AUTH_KEY" --hostname "$NODE_NAME" --accept-routes --accept-dns=false; then
-            echo "✅ [MESH] Conexión establecida con $VPN_SERVER_URL."
+        if tailscale --socket=/var/run/tailscale/tailscaled.sock up --login-server "$VPN_SERVER_URL" --authkey "$VPN_AUTH_KEY" --hostname "$NODE_NAME" --accept-routes --accept-dns=false; then
+            echo "✅ [MESH] Link established."
             break
         fi
         echo "⏳ [MESH] Reintentando conexión en 10s..."
@@ -36,6 +33,5 @@ echo "📡 [MESH] Intentando unión a la malla: $NODE_NAME..."
     done
 ) &
 
-# 3. Lanzar Apache (PHP)
-echo "🌐 [WEB] Iniciando servidor PHP..."
-apache2-foreground
+# Mantener vivo el contenedor
+wait $APACHE_PID

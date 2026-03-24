@@ -6,10 +6,10 @@ services:
     container_name: tudex_db
     restart: always
     environment:
-      - MYSQL_ROOT_PASSWORD=root_password
-      - MYSQL_DATABASE=tudex_mesh_db
-      - MYSQL_USER=tudex_user
-      - MYSQL_PASSWORD=tudex_pass
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-tudex_mesh_db}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
@@ -38,7 +38,7 @@ services:
       - DB_TYPE=mysql
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_NAME=tudex_mesh_db
+      - DB_NAME=${MYSQL_DATABASE:-tudex_mesh_db}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
       - VPN_IP_PREFIX=${VPN_IP_PREFIX:-100.64.0.0/10}

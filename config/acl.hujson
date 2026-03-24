@@ -39,7 +39,7 @@
       "action": "accept",
       "src": ["group:admin", "group:monitoring"],
       "proto": "icmp",
-      "dst": ["*:*"]
+      "dst": ["core-mesh:*", "cdn-mesh:*"]
     },
     // [SECURITY GATEWAY] Segmentación CDN-Mesh.
     // Restringe a los nodos CDN a interactuar únicamente sobre HTTP/HTTPS

@@ -214,13 +214,18 @@ haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
 # 8. Watchdog de Telemetría
 (
     while true; do
-        COUNT=$(headscale nodes list 2>/dev/null | grep -i "online" | grep -c "true" || echo 0)
-        COUNT_NUM=$(echo "$COUNT" | tr -cd '0-9')
-        [ -z "$COUNT_NUM" ] && COUNT_NUM=0
-        mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO network_stats (node_count, active_connections, cluster_health_score) VALUES ($COUNT_NUM, $COUNT_NUM, 100);"
+        if timeout 2 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" --silent; then
+            COUNT=$(headscale nodes list 2>/dev/null | grep -i "online" | grep -c "true" || echo 0)
+            COUNT_NUM=$(echo "$COUNT" | tr -cd '0-9')
+            [ -z "$COUNT_NUM" ] && COUNT_NUM=0
+            mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO network_stats (node_count, active_connections, cluster_health_score) VALUES ($COUNT_NUM, $COUNT_NUM, 100);" || true
+        else
+            echo "[$(date -u)] WATCHDOG_ERROR - Fallo de conexión a MariaDB Backbone al insertar telemetría." >> /var/log/headscale_security_audit.log
+        fi
         sleep 60
     done
 ) &
 
 echo "🌐 TUDEX MESH: INFRAESTRUCTURA OPERATIVA"
+mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('SYSTEM_ONLINE', 'Tudex Mesh operando a capacidad completa y asegurado', '$MASTER_IP');" || true
 wait $HS_PID

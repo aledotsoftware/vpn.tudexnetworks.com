@@ -21,7 +21,7 @@ services:
   # --- SERVIDOR MAESTRO (GATEWAY EDGE) ---
   headscale:
     build: .
-    container_name: tudex_gateway
+    container_name: tudex_headscale
     restart: always
     depends_on:
       db:

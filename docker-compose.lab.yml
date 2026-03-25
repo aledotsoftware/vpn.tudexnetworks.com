@@ -17,7 +17,7 @@ services:
       - FIREBASE_API_KEY=${FIREBASE_API_KEY}
       - VPN_IP_PREFIX=${VPN_IP_PREFIX_ALFA}
       - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN}
-      - VPN_SERVER_URL=http://gateway_alfa:8080
+      - VPN_SERVER_URL=${VPN_SERVER_URL:-http://gateway_alfa:8080}
     ports:
       - "8081:80"
       - "8082:8080"
@@ -43,7 +43,7 @@ services:
       - FIREBASE_API_KEY=${FIREBASE_API_KEY}
       - VPN_IP_PREFIX=${VPN_IP_PREFIX_BETA}
       - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN}
-      - VPN_SERVER_URL=http://gateway_beta:8080
+      - VPN_SERVER_URL=${VPN_SERVER_URL:-http://gateway_beta:8080}
     ports:
       - "8181:80"
       - "8180:8080"
@@ -64,7 +64,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     environment:
       - NODE_NAME=local-node-01
-      - VPN_SERVER_URL=http://gateway-alfa:8080
+      - VPN_SERVER_URL=${VPN_SERVER_URL:-http://gateway_alfa:8080}
       - VPN_AUTH_KEY=${VPN_AUTH_KEY}
     networks:
       - default
@@ -82,7 +82,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     environment:
       - NODE_NAME=local-node-02
-      - VPN_SERVER_URL=http://gateway-alfa:8080
+      - VPN_SERVER_URL=${VPN_SERVER_URL:-http://gateway_alfa:8080}
       - VPN_AUTH_KEY=${VPN_AUTH_KEY}
     networks:
       - default

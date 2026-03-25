@@ -1,7 +1,12 @@
 # Build stage para descargar dependencias pesadas
 FROM alpine:3.19 AS builder
 RUN apk add --no-cache curl && \
-    curl -L https://github.com/juanfont/headscale/releases/download/v0.22.3/headscale_0.22.3_linux_amd64 -o /bin/headscale && \
+    ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then HS_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then HS_ARCH="arm64"; \
+    else HS_ARCH="amd64"; fi && \
+    echo "Descargando Headscale para arquitectura: $HS_ARCH ($ARCH)" && \
+    curl -L "https://github.com/juanfont/headscale/releases/download/v0.22.3/headscale_0.22.3_linux_${HS_ARCH}" -o /bin/headscale && \
     chmod +x /bin/headscale
 
 # Usamos Alpine como base para tener un shell y gestor de paquetes

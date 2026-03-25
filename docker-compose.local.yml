@@ -29,10 +29,10 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
-      - DB_TYPE=mysql
-      - DB_HOST=mysql_cluster
-      - DB_PORT=3306
-      - DB_NAME=headscale
+      - DB_TYPE=${DB_TYPE}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
       - DB_USER=${MYSQL_USER}
       - DB_PASS=${MYSQL_PASSWORD}
     ports:

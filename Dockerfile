@@ -29,6 +29,7 @@ RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 COPY ./config/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 COPY ./config/config.yaml /etc/headscale/config.yaml
 COPY ./config/dashboard.html /etc/headscale/dashboard.html
+COPY ./config/admin-panel.html /etc/headscale/admin-panel.html
 COPY ./config/acl.hujson /etc/headscale/acl.hujson
 COPY ./config/domain-map.txt /etc/headscale/domain-map.txt
 COPY ./config/errors /etc/headscale/errors

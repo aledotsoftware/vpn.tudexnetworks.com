@@ -2,57 +2,43 @@
 set -e
 
 # ============================================================
-# TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V22 - FIREBASE)
+# TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V23 - FIREBASE + DYNAMIC ROUTING)
 # ============================================================
-# Base de datos externa migrada de MySQL/MariaDB a Google Firebase
-# Realtime Database. Todas las operaciones usan la REST API de Firebase.
-
-# --- FIREBASE HELPER FUNCTIONS ---
-# Todas las interacciones con Firebase se centralizan aquí para
-# facilitar el mantenimiento y la depuración.
+# Base de datos: Google Firebase Realtime Database
+# Ruteo dinámico: Domain mappings en Firebase → HAProxy config auto-generado
 
 FIREBASE_BASE_URL="${FIREBASE_DB_URL}"
 
-# Leer un valor de Firebase Realtime Database
-# Uso: firebase_get "headscale_secrets/private_key/key_content"
+# --- FIREBASE HELPER FUNCTIONS ---
 firebase_get() {
     local path="$1"
     local result
     result=$(curl -s "${FIREBASE_BASE_URL}/${path}.json" 2>/dev/null)
-    # Firebase devuelve "null" (string) si el path no existe
     if [ "$result" = "null" ] || [ -z "$result" ]; then
         echo ""
     else
-        # Quitar comillas si es un string simple
         echo "$result" | jq -r '.' 2>/dev/null || echo "$result"
     fi
 }
 
-# Escribir un valor en Firebase Realtime Database (PUT - sobreescribe)
-# Uso: firebase_put "headscale_secrets/private_key" '{"key_content":"...","updated_at":"..."}'
 firebase_put() {
     local path="$1"
     local data="$2"
     curl -s -X PUT -d "$data" "${FIREBASE_BASE_URL}/${path}.json" > /dev/null 2>&1
 }
 
-# Actualizar parcialmente un nodo (PATCH - merge)
-# Uso: firebase_patch "headscale_secrets/api_key" '{"key_content":"new_key"}'
 firebase_patch() {
     local path="$1"
     local data="$2"
     curl -s -X PATCH -d "$data" "${FIREBASE_BASE_URL}/${path}.json" > /dev/null 2>&1
 }
 
-# Insertar un nuevo registro con ID auto-generado (POST)
-# Uso: firebase_post "security_audit" '{"event_type":"NODE_JOIN",...}'
 firebase_post() {
     local path="$1"
     local data="$2"
     curl -s -X POST -d "$data" "${FIREBASE_BASE_URL}/${path}.json" > /dev/null 2>&1
 }
 
-# Helper para registrar eventos de auditoría
 audit_log() {
     local event_type="$1"
     local description="$2"
@@ -62,10 +48,77 @@ audit_log() {
     firebase_post "security_audit" "{\"event_type\":\"${event_type}\",\"description\":\"${description}\",\"ip_source\":\"${ip_source}\",\"created_at\":\"${timestamp}\"}" || true
 }
 
+# --- DOMAIN SYNC FUNCTION ---
+# Lee domain_mappings de Firebase, genera domain-map.txt y backends dinámicos,
+# y recarga HAProxy si hay cambios.
+sync_domain_mappings() {
+    MAPPINGS=$(curl -s "${FIREBASE_BASE_URL}/domain_mappings.json" 2>/dev/null)
+
+    # Si no hay mappings o Firebase no responde, usar config base
+    if [ "$MAPPINGS" = "null" ] || [ -z "$MAPPINGS" ] || echo "$MAPPINGS" | jq empty 2>/dev/null; [ $? -ne 0 ]; then
+        if [ "$MAPPINGS" = "null" ] || [ -z "$MAPPINGS" ]; then
+            > /etc/headscale/domain-map.txt
+            cp /usr/local/etc/haproxy/haproxy.cfg /tmp/haproxy-active.cfg 2>/dev/null || true
+            return 1
+        fi
+    fi
+
+    # Generar domain-map.txt
+    echo "$MAPPINGS" | jq -r '
+        to_entries[] |
+        select(.value.enabled == true) |
+        select(.value.nodes != null) |
+        select((.value.nodes | length) > 0) |
+        .value.domain + " backend_" + .key
+    ' > /tmp/domain-map-new.txt 2>/dev/null
+
+    # Generar backends dinámicos
+    > /tmp/dynamic-backends.cfg
+    KEYS=$(echo "$MAPPINGS" | jq -r '
+        to_entries[] |
+        select(.value.enabled == true) |
+        select(.value.nodes != null) |
+        select((.value.nodes | length) > 0) |
+        .key
+    ' 2>/dev/null)
+
+    for key in $KEYS; do
+        echo "" >> /tmp/dynamic-backends.cfg
+        echo "backend backend_${key}" >> /tmp/dynamic-backends.cfg
+        echo "    balance roundrobin" >> /tmp/dynamic-backends.cfg
+
+        NODES=$(echo "$MAPPINGS" | jq -r ".\"${key}\".nodes[]" 2>/dev/null)
+        i=1
+        for node in $NODES; do
+            echo "    server ${key}_${i} ${node}:80 check resolvers docker_dns inter 2s" >> /tmp/dynamic-backends.cfg
+            i=$((i + 1))
+        done
+    done
+
+    # Combinar: config base + backends dinámicos
+    sed '/^# __DYNAMIC_BACKENDS_START__/,$d' /usr/local/etc/haproxy/haproxy.cfg > /tmp/haproxy-new.cfg
+    echo "# __DYNAMIC_BACKENDS_START__" >> /tmp/haproxy-new.cfg
+    cat /tmp/dynamic-backends.cfg >> /tmp/haproxy-new.cfg
+
+    # Verificar si hubo cambios
+    if [ -f /tmp/haproxy-active.cfg ]; then
+        if diff -q /tmp/haproxy-new.cfg /tmp/haproxy-active.cfg > /dev/null 2>&1; then
+            # Igual al anterior, actualizar map por si acaso
+            cp /tmp/domain-map-new.txt /etc/headscale/domain-map.txt 2>/dev/null || true
+            return 1  # Sin cambios
+        fi
+    fi
+
+    # Aplicar cambios
+    cp /tmp/domain-map-new.txt /etc/headscale/domain-map.txt
+    cp /tmp/haproxy-new.cfg /tmp/haproxy-active.cfg
+    return 0  # Cambios detectados
+}
+
 # Configurar trap para salir limpiamente
 trap 'echo "🛑 Recibido SIGTERM/SIGINT. Saliendo..."; audit_log "GATEWAY_SHUTDOWN" "Gateway detenido exitosamente" "$MASTER_IP" 2>/dev/null || true; kill $(jobs -p) 2>/dev/null; exit 0' TERM INT
 
-echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V22 - FIREBASE)"
+echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V23 - FIREBASE + DYNAMIC ROUTING)"
 
 # 0. Asegurar dispositivo TUN
 if [ ! -c /dev/net/tun ]; then
@@ -83,59 +136,42 @@ MAX_BACKOFF=10
 
 echo "⏳ [DB] Sincronizando con Firebase Realtime Database (con Exponential Backoff)..."
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-  # Intentar leer la raíz de Firebase para verificar conectividad
   RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "${FIREBASE_BASE_URL}/.json?shallow=true" 2>/dev/null)
   if [ "$RESPONSE" = "200" ]; then
     DB_AVAILABLE=true
     break
   fi
   RETRY_COUNT=$((RETRY_COUNT + 1))
-
   echo "⏳ [DB] Reintento $RETRY_COUNT/$MAX_RETRIES (Esperando ${BACKOFF_DELAY}s) [HTTP: $RESPONSE]..."
   sleep "$BACKOFF_DELAY"
-
-  # Exponential backoff con límite
   BACKOFF_DELAY=$((BACKOFF_DELAY * 2))
-  if [ "$BACKOFF_DELAY" -gt "$MAX_BACKOFF" ]; then
-      BACKOFF_DELAY=$MAX_BACKOFF
-  fi
+  if [ "$BACKOFF_DELAY" -gt "$MAX_BACKOFF" ]; then BACKOFF_DELAY=$MAX_BACKOFF; fi
 done
 
 if [ "$DB_AVAILABLE" = "false" ]; then
   echo "❌ [DB] Error crítico: No se pudo conectar a Firebase después de $MAX_RETRIES intentos."
-  echo "[$(date -u)] SECURITY_AUDIT - EVENT: DB_ERROR - Fallo crítico de conexión a Firebase al arrancar (IP Source: 127.0.0.1)" >> /var/log/headscale_security_audit.log
-  echo "⚠️ Saliendo del proceso de inicio. Verifica la configuración de Firebase (FIREBASE_DB_URL)."
+  echo "⚠️ Saliendo. Verifica FIREBASE_DB_URL."
   exit 1
 fi
-
 echo "✅ [DB] Conexión con Firebase establecida."
 
-# Descubrimiento de red (Necesario aquí para los logs)
+# Descubrimiento de red
 MASTER_IP=$(ip -4 addr show eth0 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n 1)
 [ -z "$MASTER_IP" ] && MASTER_IP=$(hostname -i | awk '{print $1}')
 MASTER_DOMAIN=$(grep "server_url:" /etc/headscale/config.yaml | awk '{print $2}' | sed 's|https://||' | sed 's|http://||' | sed 's|:.*||')
 
-# Inicializar estructura base en Firebase (idempotente)
-# Esto es el equivalente a aplicar el schema.sql
+# Inicializar estructura base en Firebase
 EXISTING=$(curl -s "${FIREBASE_BASE_URL}/cluster_config/cluster_name.json" 2>/dev/null)
 if [ "$EXISTING" = "null" ] || [ -z "$EXISTING" ]; then
     echo "🔧 [DB] Inicializando estructura base en Firebase..."
     firebase_put "cluster_config/cluster_name" '{"config_value":"Tudex Global Mesh","is_critical":true}'
-    echo "✅ [DB] Estructura base inicializada."
 fi
 
-# Registrar conexión exitosa
 audit_log "DB_CONNECTED" "Conexión a Firebase Realtime Database establecida exitosamente"
-
-# Registrar la creación de la interfaz TUN
 audit_log "TUN_INITIALIZED" "Interfaz de túnel VPN asegurada e inicializada"
-
-# Auditoría de gestión de secretos
 audit_log "SECRETS_LOADED" "Credenciales cacheadas de manera aislada (Entorno / Secrets)"
 
-# 2. Gestión de Identidad del Cluster (Seguridad Centralizada)
-# Evitamos harcodear las llaves generándolas con un buen nivel de entropía si no existen,
-# y las almacenamos centralizadas en Firebase para compartirlas con otros nodos (HA).
+# 2. Gestión de Identidad del Cluster
 PRIVATE_KEY=$(firebase_get "headscale_secrets/private_key/key_content")
 NOISE_KEY=$(firebase_get "headscale_secrets/noise_private_key/key_content")
 
@@ -148,23 +184,19 @@ if [ -n "$PRIVATE_KEY" ] && [ -n "$NOISE_KEY" ]; then
     audit_log "IDENTITY_RECOVERY" "Identidad de red recuperada exitosamente de Firebase"
 else
     echo "🚀 [AUTH] Generando raíz de identidad de malla dinámicamente..."
-    # Generar claves aleatorias seguras (64 hex chars = 32 bytes)
     head -c 32 /dev/urandom | xxd -p -c 32 > /var/lib/headscale/private.key
     head -c 32 /dev/urandom | xxd -p -c 32 > /var/lib/headscale/noise_private.key
-
     TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     PRIV_KEY_CONTENT=$(cat /var/lib/headscale/private.key)
     NOISE_KEY_CONTENT=$(cat /var/lib/headscale/noise_private.key)
-
     firebase_put "headscale_secrets/private_key" "{\"key_content\":\"${PRIV_KEY_CONTENT}\",\"updated_at\":\"${TIMESTAMP}\",\"description\":\"WireGuard private key\"}"
     firebase_put "headscale_secrets/noise_private_key" "{\"key_content\":\"${NOISE_KEY_CONTENT}\",\"updated_at\":\"${TIMESTAMP}\",\"description\":\"Noise protocol private key\"}"
     audit_log "KEY_ROTATION" "Generación inicial dinámica de claves WireGuard/Noise"
 fi
 
-# Registrar carga de ACL en auditoría
 audit_log "ACL_UPDATE" "Políticas ACL actualizadas y cargadas"
 
-# Configuración Dinámica de Headscale (desde variables de entorno)
+# Configuración Dinámica
 [ -z "$VPN_SERVER_URL" ] && VPN_SERVER_URL="http://localhost:8080"
 [ -z "$VPN_IP_PREFIX" ] && VPN_IP_PREFIX="100.64.0.0/10"
 [ -z "$VPN_BASE_DOMAIN" ] && VPN_BASE_DOMAIN="vpn.internal"
@@ -189,22 +221,19 @@ while [ $HS_RETRIES -lt $HS_MAX_RETRIES ]; do
   HS_RETRIES=$((HS_RETRIES + 1))
   sleep 1
 done
-
 if [ $HS_RETRIES -eq $HS_MAX_RETRIES ]; then
-  echo "⚠️ [CORE] Advertencia: Headscale tardó mucho en responder, continuando de todas formas..."
+  echo "⚠️ [CORE] Advertencia: Headscale tardó mucho, continuando..."
 fi
 
-# 4. Aprovisionamiento y Creación Segura de Claves
+# 4. Aprovisionamiento de Claves
 if headscale users create tudex-admin 2>/dev/null; then
     audit_log "USER_CREATED" "Usuario tudex-admin creado en el control plane"
 fi || true
 
-# API Key Dashboard - Verificación de Validez (Self-Healing)
+# API Key Dashboard - Self-Healing
 API_KEY=$(firebase_get "headscale_secrets/api_key/key_content")
 VALID_KEY=false
-
 if [ -n "$API_KEY" ]; then
-    # Probar si la llave actual funciona
     CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $API_KEY" http://localhost:8080/api/v1/machine)
     if [ "$CODE" = "200" ]; then
         VALID_KEY=true
@@ -212,9 +241,8 @@ if [ -n "$API_KEY" ]; then
         audit_log "API_KEY_RECOVERY" "API Key de Dashboard validada exitosamente"
     fi
 fi
-
 if [ "$VALID_KEY" = "false" ]; then
-    echo "🔄 [AUTH] Generando nueva API Key (la anterior no era válida)..."
+    echo "🔄 [AUTH] Generando nueva API Key..."
     API_KEY=$(headscale apikeys create --expiration 3650d | grep -oE "[a-zA-Z0-9._-]+" | tail -n 1)
     TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     firebase_put "headscale_secrets/api_key" "{\"key_content\":\"${API_KEY}\",\"updated_at\":\"${TIMESTAMP}\",\"description\":\"Dashboard API key\"}"
@@ -232,23 +260,31 @@ if [ -z "$SATELLITE_KEY" ]; then
     fi
 fi
 
-# 5. Dashboard Patching
+# 5. Dashboard & Admin Panel Patching
 sed -i "s|%%DASHBOARD_API_KEY%%|$API_KEY|g" /etc/headscale/dashboard.html
 sed -i "s|%%MASTER_IP%%|$MASTER_IP|g" /etc/headscale/dashboard.html
 sed -i "s|%%MASTER_DOMAIN%%|$MASTER_DOMAIN|g" /etc/headscale/dashboard.html
+sed -i "s|%%FIREBASE_DB_URL%%|$FIREBASE_BASE_URL|g" /etc/headscale/admin-panel.html
 
-# 6. Activar HAProxy (ANTES de la conexión mesh para evitar bloqueos)
+# 6. Domain Sync Inicial + HAProxy Launch
+echo "🔄 [SYNC] Sincronizando mapeos de dominio desde Firebase..."
+sync_domain_mappings || true  # OK si no hay cambios aún
+
+# Asegurar que existe un config activo
+if [ ! -f /tmp/haproxy-active.cfg ]; then
+    cp /usr/local/etc/haproxy/haproxy.cfg /tmp/haproxy-active.cfg
+fi
+
 echo "⚖️ [EDGE] Iniciando HAProxy Gateway..."
-audit_log "GATEWAY_BOOT" "HAProxy Edge Gateway iniciado exitosamente con mitigaciones anti-DoS y Anti-Escaneo"
-haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
+haproxy -f /tmp/haproxy-active.cfg -D -p /var/run/haproxy.pid
+audit_log "GATEWAY_BOOT" "HAProxy Edge Gateway iniciado con ruteo dinámico de dominios"
 
-# 7. Conexión Mesh en Background (Evita que el boot se cuelgue si el 401 persiste)
+# 7. Conexión Mesh en Background
 (
     echo "📡 [MESH] Iniciando motor de enlace..."
     mkdir -p /var/run/tailscale /var/lib/tailscale
     tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock > /var/log/tailscaled.log 2>&1 &
 
-    # Active polling para asegurar que el daemon esté listo
     echo "⏳ [MESH] Esperando inicialización del daemon de tailscale..."
     TS_RETRIES=0
     while [ ! -S /var/run/tailscale/tailscaled.sock ] && [ $TS_RETRIES -lt 15 ]; do
@@ -256,14 +292,13 @@ haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
         TS_RETRIES=$((TS_RETRIES + 1))
     done
     
-    # Reintentar hasta conectar
     while true; do
         if tailscale up --login-server http://localhost:8080 --authkey "$SATELLITE_KEY" --hostname "master-gateway-$MASTER_IP" --advertise-exit-node --accept-routes --accept-dns=false; then
             echo "✅ [MESH] Link established."
             audit_log "NODE_JOIN" "Gateway unido a la malla (Mesh Link Established)"
             break
         fi
-        echo "⏳ [MESH] Reintentando conexión en 10s (AuthKey might be invalid yet)..."
+        echo "⏳ [MESH] Reintentando conexión en 10s..."
         sleep 10
     done
 ) &
@@ -271,7 +306,6 @@ haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
 # 8. Watchdog de Telemetría
 (
     while true; do
-        # Verificar conectividad con Firebase
         FB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${FIREBASE_BASE_URL}/.json?shallow=true" 2>/dev/null)
         if [ "$FB_STATUS" = "200" ]; then
             COUNT=$(headscale nodes list 2>/dev/null | grep -i "online" | grep -c "true" || echo 0)
@@ -279,13 +313,25 @@ haproxy -f /usr/local/etc/haproxy/haproxy.cfg -D
             [ -z "$COUNT_NUM" ] && COUNT_NUM=0
             TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
             firebase_post "network_stats" "{\"node_count\":${COUNT_NUM},\"active_connections\":${COUNT_NUM},\"cluster_health_score\":100,\"snapshot_time\":\"${TIMESTAMP}\"}"
-        else
-            echo "[$(date -u)] WATCHDOG_ERROR - Fallo de conexión a Firebase al insertar telemetría." >> /var/log/headscale_security_audit.log
         fi
         sleep 60
     done
 ) &
 
-echo "🌐 TUDEX MESH: INFRAESTRUCTURA OPERATIVA (Firebase Backend)"
-audit_log "SYSTEM_ONLINE" "Tudex Mesh operando a capacidad completa y asegurado (Firebase)"
+# 9. Domain Sync Agent (Actualización continua de ruteo)
+(
+    echo "🔄 [SYNC] Agente de sincronización de dominios iniciado (cada 30s)..."
+    while true; do
+        sleep 30
+        if sync_domain_mappings; then
+            # Cambios detectados → recargar HAProxy
+            haproxy -f /tmp/haproxy-active.cfg -D -p /var/run/haproxy.pid -sf $(cat /var/run/haproxy.pid 2>/dev/null) 2>/dev/null
+            echo "[$(date -u)] DOMAIN_SYNC - HAProxy recargado con nuevos mapeos de dominio."
+            audit_log "DOMAIN_SYNC" "HAProxy recargado con nuevos mapeos de dominio"
+        fi
+    done
+) &
+
+echo "🌐 TUDEX MESH: INFRAESTRUCTURA OPERATIVA (Firebase + Dynamic Routing)"
+audit_log "SYSTEM_ONLINE" "Tudex Mesh operando a capacidad completa con ruteo dinámico"
 wait $HS_PID

@@ -58,6 +58,17 @@
       "action": "accept",
       "src": ["group:monitoring"],
       "dst": ["core-mesh:9090"]
+    },
+    // [SECURITY GATEWAY] Bloqueo Activo y Explicito (Hardening)
+    // El principio de Denegación por Defecto (Default Deny) está implícito,
+    // pero documentamos explícitamente el aislamiento para otros flujos
+    // de red potencialmente inseguros o sin clasificar si se intenta usar comodines.
+    // Toda red fuera del grupo admin, cdn y monitoring está denegada nativamente.
+    {
+      "action": "accept",
+      "src": ["group:admin"],
+      "proto": "tcp",
+      "dst": ["core-mesh:22"]
     }
   ],
 

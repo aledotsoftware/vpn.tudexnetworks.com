@@ -7,7 +7,7 @@ services:
     restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-tudex_mesh_db}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     healthcheck:
@@ -38,7 +38,7 @@ services:
       - DB_TYPE=mysql
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_NAME=${MYSQL_DATABASE:-tudex_mesh_db}
+      - DB_NAME=${MYSQL_DATABASE}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
       - VPN_IP_PREFIX=${VPN_IP_PREFIX:-100.64.0.0/10}

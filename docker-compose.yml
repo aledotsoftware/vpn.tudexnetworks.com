@@ -45,10 +45,10 @@ services:
       - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN:-vpn.internal}
       - VPN_SERVER_URL=https://vpn.tudexnetworks.com
     ports:
-      - "8081:80"        # HAProxy Edge
+      - "8081:80"         # HAProxy Edge
       - "8080:8080"      # Headscale Control Plane
       - "8404:8404"      # HAProxy Stats
-      - "41641:41641/udp" # WireGuard Port
+      - "41641:41641/udp"  # WireGuard Port
     volumes:
       - ./config:/etc/headscale
       - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro

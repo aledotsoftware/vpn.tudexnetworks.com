@@ -19,7 +19,7 @@ services:
       - tudex_mesh_net
 
   # --- SERVIDOR MAESTRO (GATEWAY EDGE) ---
-  gateway:
+  headscale:
     build: .
     container_name: tudex_gateway
     restart: always
@@ -63,7 +63,7 @@ services:
     container_name: node_01
     restart: always
     depends_on:
-      gateway:
+      headscale:
         condition: service_started
     cap_add:
       - NET_ADMIN
@@ -72,7 +72,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     environment:
       - NODE_NAME=node-01
-      - VPN_SERVER_URL=http://gateway:8080
+      - VPN_SERVER_URL=http://headscale:8080
       - VPN_AUTH_KEY=${TS_AUTHKEY}
     networks:
       - tudex_mesh_net
@@ -83,7 +83,7 @@ services:
     container_name: node_02
     restart: always
     depends_on:
-      gateway:
+      headscale:
         condition: service_started
     cap_add:
       - NET_ADMIN
@@ -92,7 +92,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     environment:
       - NODE_NAME=node-02
-      - VPN_SERVER_URL=http://gateway:8080
+      - VPN_SERVER_URL=http://headscale:8080
       - VPN_AUTH_KEY=${TS_AUTHKEY}
     networks:
       - tudex_mesh_net

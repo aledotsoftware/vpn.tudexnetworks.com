@@ -8,11 +8,10 @@ RUN apk add --no-cache curl && \
 FROM alpine:3.19
 
 # Instalamos HAProxy y dependencias
-# Generamos directorios necesarios (sin wget ya que no se usa)
+# jq reemplaza a mariadb-client para parsear respuestas JSON de Firebase
 RUN apk add --no-cache \
     haproxy \
-    mariadb-client \
-    mariadb-connector-c \
+    jq \
     ca-certificates \
     curl \
     tailscale \
@@ -32,7 +31,6 @@ COPY ./config/config.yaml /etc/headscale/config.yaml
 COPY ./config/dashboard.html /etc/headscale/dashboard.html
 COPY ./config/acl.hujson /etc/headscale/acl.hujson
 COPY ./config/errors /etc/headscale/errors
-COPY ./database/schema.sql /etc/headscale/database/schema.sql
 
 # Puertos
 EXPOSE 80 443 8080 9090 8404

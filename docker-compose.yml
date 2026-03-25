@@ -1,31 +1,9 @@
 services:
-  # --- BASE DE DATOS LOCAL (PARA LAB) ---
-  # Evita problemas de Access Denied por IP en Hostinger.
-  db:
-    image: mariadb:10.11
-    container_name: tudex_db
-    restart: always
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - tudex_mesh_net
-
   # --- SERVIDOR MAESTRO (GATEWAY EDGE) ---
   headscale:
     build: .
     container_name: tudex_headscale
     restart: always
-    depends_on:
-      db:
-        condition: service_healthy
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -35,12 +13,10 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
-      - DB_TYPE=mysql
-      - DB_HOST=db
-      - DB_PORT=3306
-      - DB_NAME=${MYSQL_DATABASE}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
+      - DB_TYPE=firebase
+      - FIREBASE_DB_URL=${FIREBASE_DB_URL}
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
+      - FIREBASE_API_KEY=${FIREBASE_API_KEY}
       - VPN_IP_PREFIX=${VPN_IP_PREFIX:-100.64.0.0/10}
       - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN:-vpn.internal}
       - VPN_SERVER_URL=https://vpn.tudexnetworks.com

@@ -4,28 +4,38 @@ Este documento profundiza en la lógica interna y la configuración avanzada del
 
 ---
 
-## 🛡️ 1. Lógica del Entrypoint (V21 - Total Resilience)
+## 🛡️ 1. Lógica del Entrypoint (V22 - Firebase)
 
 El script `/config/entrypoint.sh` es el orquestador del contenedor. Sus fases críticas son:
 
 1.  **TUN Intervención:** Verifica y crea el dispositivo `/dev/net/tun` si es necesario, permitiendo que la VPN levante en entornos restringidos.
 2.  **Sincronización de Identidad:** 
-    - Se conecta a la DB externa de Hostinger antes de arrancar.
-    - Si encuentra llaves en la DB, las inyecta en el sistema local. Esto permite que **múltiples Gateways actúen como la misma entidad**, permitiendo Alta Disponibilidad (HA).
+    - Se conecta a **Firebase Realtime Database** mediante la REST API antes de arrancar.
+    - Si encuentra llaves en Firebase, las inyecta en el sistema local. Esto permite que **múltiples Gateways actúen como la misma entidad**, permitiendo Alta Disponibilidad (HA).
+    - Las funciones helper (`firebase_get`, `firebase_put`, `firebase_post`) centralizan todas las operaciones de BD.
 3.  **Self-Healing API Keys:** 
-    - Valida si la clave de API guardada en la nube sigue siendo funcional contra el motor local.
+    - Valida si la clave de API guardada en Firebase sigue siendo funcional contra el motor local.
     - Si detecta un error `401 Unauthorized`, regenera la clave automáticamente y actualiza el Dashboard para evitar interrupciones en la monitorización.
 4.  **Auto-Mesh Enlace:** Tailscale se levanta en segundo plano con reintentos infinitos hasta que el Gateway se registra a sí mismo como "Master Gateway" y se marca como **Exit Node**.
 
 ---
 
-## 🗄️ 2. Estructura de Persistencia (MySQL)
+## 🔥 2. Estructura de Persistencia (Firebase Realtime Database)
 
-El sistema centraliza el estado global en `u487445196_tudex_db`:
+El sistema centraliza el estado global en Firebase:
 
--   **`headscale_secrets`**: Guarda la identidad WireGuard y los tokens de acceso. Es el corazón de la soberanía del cluster.
--   **`security_audit`**: Registro inmutable de eventos (Gateways arriba, nodos unidos, fallos de auth).
--   **`network_stats`**: Alimenta las gráficas del Dashboard con datos de nodos online y rendimiento.
+-   **`headscale_secrets/`**: Guarda la identidad WireGuard y los tokens de acceso. Es el corazón de la soberanía del cluster. Cada secreto tiene `key_content`, `updated_at` y `description`.
+-   **`security_audit/`**: Registro de eventos (Gateways arriba, nodos unidos, fallos de auth). Cada entrada tiene `event_type`, `description`, `ip_source` y `created_at`.
+-   **`network_stats/`**: Alimenta las gráficas del Dashboard con datos de nodos online y rendimiento.
+-   **`cluster_config/`**: Parámetros dinámicos que los Gateways leen al arrancar.
+
+### Operaciones Firebase utilizadas:
+| Método HTTP | Función Shell | Uso |
+| :--- | :--- | :--- |
+| `GET` | `firebase_get` | Leer secretos, configuración |
+| `PUT` | `firebase_put` | Escribir/reemplazar secretos |
+| `PATCH` | `firebase_patch` | Actualización parcial |
+| `POST` | `firebase_post` | Insertar audit logs, stats (auto-ID) |
 
 ---
 
@@ -57,10 +67,11 @@ Los satélites son agnósticos a la infraestructura:
 
 | Síntoma | Causa Probable | Solución |
 | :--- | :--- | :--- |
-| **Error 401 en Dashboard** | Desfase de API Key | Reiniciar el Gateway (El V21 lo arreglará solo). |
+| **Error 401 en Dashboard** | Desfase de API Key | Reiniciar el Gateway (El V22 lo arreglará solo). |
 | **Nodos no se ven (Offline)** | Puerto 41641 bloqueado | Abrir UDP 41641 en el firewall del servidor. |
 | **502 Bad Gateway** | HAProxy no ha iniciado | Verificar logs con `docker logs gateway_alfa`. |
-| **Access Denied (DB)** | IP local no permitida | Asegurar que Hostinger permita conexiones remotas desde la IP del servidor. |
+| **Firebase no responde** | URL incorrecta o reglas restrictivas | Verificar `FIREBASE_DB_URL` y las reglas de seguridad en Firebase Console. |
+| **Datos no se sincronizan** | API Key de Firebase inválida | Regenerar la API Key en Firebase Console y actualizar `.env`. |
 
 ---
 *Tudex Networks - Infrastructure as Code.*

@@ -66,15 +66,15 @@ MASTER_IP=$(ip -4 addr show eth0 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{
 [ -z "$MASTER_IP" ] && MASTER_IP=$(hostname -i | awk '{print $1}')
 MASTER_DOMAIN=$(grep "server_url:" /etc/headscale/config.yaml | awk '{print $2}' | sed 's|https://||' | sed 's|http://||' | sed 's|:.*||')
 
-# Registrar conexión exitosa en la base de datos
-mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('DB_CONNECTED', 'Conexión a MariaDB Backbone establecida exitosamente', '$MASTER_IP');" || true
-
 # Aplicar esquema oficial
 SCHEMA_FILE="/etc/headscale/database/schema.sql"
 if [ -f "$SCHEMA_FILE" ]; then
     mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" < "$SCHEMA_FILE"
     echo "✅ [DB] Esquema oficial aplicado."
 fi
+
+# Registrar conexión exitosa en la base de datos (después del esquema para asegurar tabla)
+mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('DB_CONNECTED', 'Conexión a MariaDB Backbone establecida exitosamente', '$MASTER_IP');" || true
 
 # Intentar registrar la creación de la interfaz TUN de forma aislada (no fatal) para auditoría.
 mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('TUN_INITIALIZED', 'Interfaz de túnel VPN asegurada e inicializada', '$MASTER_IP');" 2>/dev/null || true

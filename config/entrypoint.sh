@@ -120,7 +120,16 @@ trap 'echo "🛑 Recibido SIGTERM/SIGINT. Saliendo..."; audit_log "GATEWAY_SHUTD
 
 echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V23 - FIREBASE + DYNAMIC ROUTING)"
 
-# 0. Asegurar dispositivo TUN
+# 0. Limpieza de procesos huérfanos (previene crash loops)
+echo "🧹 [INIT] Limpiando procesos anteriores..."
+killall headscale 2>/dev/null || true
+killall tailscaled 2>/dev/null || true
+killall haproxy 2>/dev/null || true
+sleep 1
+# Limpiar locks de SQLite
+rm -f /var/lib/headscale/db.sqlite-wal /var/lib/headscale/db.sqlite-shm 2>/dev/null || true
+
+# 0b. Asegurar dispositivo TUN
 if [ ! -c /dev/net/tun ]; then
     echo "🔧 Creando interfaz TUN..."
     mkdir -p /dev/net
@@ -207,14 +216,23 @@ sed -i "s|%%VPN_IP_PREFIX%%|$VPN_IP_PREFIX|g" /etc/headscale/config.yaml
 sed -i "s|%%VPN_BASE_DOMAIN%%|$VPN_BASE_DOMAIN|g" /etc/headscale/config.yaml
 
 # 3. Lanzar Plano de Control (Headscale)
+echo "🔧 [CORE] Iniciando Headscale..."
 headscale serve -c /etc/headscale/config.yaml > /var/log/headscale.log 2>&1 &
 HS_PID=$!
 
-echo "⏳ [CORE] Esperando inicialización de Headscale..."
+echo "⏳ [CORE] Esperando inicialización de Headscale (hasta 30s)..."
 HS_RETRIES=0
-HS_MAX_RETRIES=15
+HS_MAX_RETRIES=30
 while [ $HS_RETRIES -lt $HS_MAX_RETRIES ]; do
-  if curl -s http://localhost:9090/metrics > /dev/null; then
+  # Verificar que el proceso sigue vivo
+  if ! kill -0 $HS_PID 2>/dev/null; then
+    echo "❌ [CORE] Headscale se cerró inesperadamente. Log:"
+    cat /var/log/headscale.log 2>/dev/null | tail -20
+    echo "🔄 [CORE] Reintentando arranque de Headscale..."
+    headscale serve -c /etc/headscale/config.yaml > /var/log/headscale.log 2>&1 &
+    HS_PID=$!
+  fi
+  if curl -s http://localhost:9090/metrics > /dev/null 2>&1; then
     echo "✅ [CORE] Headscale operativo."
     break
   fi
@@ -222,7 +240,9 @@ while [ $HS_RETRIES -lt $HS_MAX_RETRIES ]; do
   sleep 1
 done
 if [ $HS_RETRIES -eq $HS_MAX_RETRIES ]; then
-  echo "⚠️ [CORE] Advertencia: Headscale tardó mucho, continuando..."
+  echo "⚠️ [CORE] Headscale no respondió en 30s. Log de error:"
+  cat /var/log/headscale.log 2>/dev/null | tail -20
+  echo "⚠️ [CORE] Continuando de todas formas..."
 fi
 
 # 4. Aprovisionamiento de Claves
@@ -243,10 +263,14 @@ if [ -n "$API_KEY" ]; then
 fi
 if [ "$VALID_KEY" = "false" ]; then
     echo "🔄 [AUTH] Generando nueva API Key..."
-    API_KEY=$(headscale apikeys create --expiration 3650d | grep -oE "[a-zA-Z0-9._-]+" | tail -n 1)
-    TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    firebase_put "headscale_secrets/api_key" "{\"key_content\":\"${API_KEY}\",\"updated_at\":\"${TIMESTAMP}\",\"description\":\"Dashboard API key\"}"
-    audit_log "KEY_ROTATION" "Generación de nueva API Key de Dashboard"
+    API_KEY=$(headscale apikeys create --expiration 3650d 2>/dev/null | grep -oE "[a-zA-Z0-9._-]+" | tail -n 1 || echo "")
+    if [ -n "$API_KEY" ]; then
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        firebase_put "headscale_secrets/api_key" "{\"key_content\":\"${API_KEY}\",\"updated_at\":\"${TIMESTAMP}\",\"description\":\"Dashboard API key\"}"
+        audit_log "KEY_ROTATION" "Generación de nueva API Key de Dashboard"
+    else
+        echo "⚠️ [AUTH] No se pudo generar API Key (Headscale puede no estar listo)."
+    fi
 fi
 
 # Satellite Pre-AuthKey

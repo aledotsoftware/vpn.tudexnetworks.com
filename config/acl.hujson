@@ -20,18 +20,18 @@
 
   "acls": [
     // [SECURITY GATEWAY] Principio de Mínimo Privilegio (Least Privilege) para Administradores.
-    // [AUDIT 2026] Se han auditado y confirmado estas reglas para garantizar segmentación total de red.
-    // En lugar de usar *:*, se especifican explícitamente los puertos críticos del sistema:
+    // [AUDIT 2026] Se han auditado y confirmado estas reglas para garantizar segmentación estricta de red.
+    // En lugar de usar *:*, se especifican explícitamente los destinos y puertos críticos del sistema:
     // - 80/443: Acceso a servicios web y dashboard
     // - 8080: Headscale Control API (Aprovisionamiento y registro)
     // - 8404: HAProxy Stats (Telemetría de ruteo)
     // - 9090: Headscale Metrics (Monitoreo de malla)
     // - 41641: WireGuard UDP (Túneles de red P2P)
-    // Nota: Se prohíbe el uso de *:0 para ICMP para prevenir caídas de control plane, usando puertos explícitos en su lugar.
+    // Nota: Se restringen explícitamente a los dominios autorizados de la malla en lugar del wildcard global `*:*`.
     {
       "action": "accept",
       "src": ["group:admin"],
-      "dst": ["*:80", "*:443", "*:8080", "*:8404", "*:9090", "*:41641"]
+      "dst": ["core-mesh:80", "core-mesh:443", "core-mesh:8080", "core-mesh:8404", "core-mesh:9090", "core-mesh:41641", "cdn-mesh:80", "cdn-mesh:443"]
     },
     // [SECURITY GATEWAY] Regla ICMP Restringida y Segmentada (Least Privilege)
     // Solo permitir ping (ICMP) desde los administradores y nodos de monitoreo, previniendo escaneos laterales no autorizados.

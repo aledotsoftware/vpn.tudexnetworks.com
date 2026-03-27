@@ -22,17 +22,17 @@ RUN apk add --no-cache curl && \
 FROM alpine:3.19
 
 # Instalamos HAProxy y dependencias
-# jq reemplaza a mariadb-client para parsear respuestas JSON de Firebase
+# Se añade mariadb-client nuevamente para restaurar la auditoría en base de datos dual MySQL requerida.
 RUN apk add --no-cache \
     haproxy \
     jq \
+    mariadb-client \
     ca-certificates \
     curl \
     tailscale \
     iptables \
     xxd \
     ip6tables && \
-    mkdir -p /etc/headscale /var/lib/headscale /var/run/headscale /usr/local/etc/haproxy
     mkdir -p /etc/headscale /var/lib/headscale /var/run/headscale /usr/local/etc/haproxy && \
     rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
 

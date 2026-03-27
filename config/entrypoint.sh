@@ -353,11 +353,13 @@ audit_log "GATEWAY_BOOT" "HAProxy Edge Gateway iniciado con ruteo dinámico de d
         [ -z "$COUNT_NUM" ] && COUNT_NUM=0
 
         # Validar conexión de BD para el healthcheck de telemetría, registramos caída silenciosa si falla
+        export MYSQL_PWD="$DB_PASS"
         if timeout 2 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" --silent; then
             mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO network_stats (node_count, active_connections, cluster_health_score) VALUES ($COUNT_NUM, $COUNT_NUM, 100);" || true
         else
             echo "[$(date -u)] SECURITY_AUDIT - EVENT: TELEMETRY_FAILURE - Base de datos inalcanzable durante volcado de métricas" >> /var/log/headscale_security_audit.log
         fi
+        unset MYSQL_PWD
 
         FB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${FIREBASE_BASE_URL}/.json?shallow=true" 2>/dev/null)
         if [ "$FB_STATUS" = "200" ]; then
@@ -372,7 +374,10 @@ audit_log "GATEWAY_BOOT" "HAProxy Edge Gateway iniciado con ruteo dinámico de d
 ) &
 
 echo "🌐 TUDEX MESH: INFRAESTRUCTURA OPERATIVA"
+export MYSQL_PWD="$DB_PASS"
 mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('SYSTEM_ONLINE', 'Infraestructura de Malla Operativa y Securizada', '$MASTER_IP');" || true
+unset MYSQL_PWD
+audit_log "SYSTEM_ONLINE" "Tudex Mesh operando a capacidad completa con ruteo dinámico y mitigaciones en HAProxy/ACLs activas."
 # 9. Domain Sync Agent (Actualización continua de ruteo)
 (
     echo "🔄 [SYNC] Agente de sincronización de dominios iniciado (cada 30s)..."

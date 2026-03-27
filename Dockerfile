@@ -1,18 +1,22 @@
 # Build stage para descargar dependencias pesadas
 FROM alpine:3.19 AS builder
 RUN apk add --no-cache curl && \
-    curl -L https://github.com/juanfont/headscale/releases/download/v0.22.3/headscale_0.22.3_linux_amd64 -o /bin/headscale && \
+    ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then HS_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then HS_ARCH="arm64"; \
+    else HS_ARCH="amd64"; fi && \
+    echo "Descargando Headscale para arquitectura: $HS_ARCH ($ARCH)" && \
+    curl -L "https://github.com/juanfont/headscale/releases/download/v0.22.3/headscale_0.22.3_linux_${HS_ARCH}" -o /bin/headscale && \
     chmod +x /bin/headscale
 
 # Usamos Alpine como base para tener un shell y gestor de paquetes
 FROM alpine:3.19
 
 # Instalamos HAProxy y dependencias
-# Generamos directorios necesarios (sin wget ya que no se usa)
+# jq reemplaza a mariadb-client para parsear respuestas JSON de Firebase
 RUN apk add --no-cache \
     haproxy \
-    mariadb-client \
-    mariadb-connector-c \
+    jq \
     ca-certificates \
     curl \
     tailscale \
@@ -26,12 +30,14 @@ COPY --from=builder /bin/headscale /bin/headscale
 
 # Copiamos configuraciones
 COPY ./config/entrypoint.sh /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 COPY ./config/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 COPY ./config/config.yaml /etc/headscale/config.yaml
 COPY ./config/dashboard.html /etc/headscale/dashboard.html
+COPY ./config/admin-panel.html /etc/headscale/admin-panel.html
 COPY ./config/acl.hujson /etc/headscale/acl.hujson
+COPY ./config/domain-map.txt /etc/headscale/domain-map.txt
 COPY ./config/errors /etc/headscale/errors
-COPY ./database/schema.sql /etc/headscale/database/schema.sql
 
 # Puertos
 EXPOSE 80 443 8080 9090 8404

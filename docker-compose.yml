@@ -1,7 +1,8 @@
 services:
+  # --- SERVIDOR MAESTRO (GATEWAY EDGE) ---
   headscale:
     build: .
-    container_name: headscale_control
+    container_name: tudex_headscale
     restart: always
     cap_add:
       - NET_ADMIN
@@ -11,48 +12,68 @@ services:
       - net.ipv6.conf.all.forwarding=1
     devices:
       - /dev/net/tun:/dev/net/tun
-    labels:
-      - "traefik.enable=true"
-      # Importante: Indicar a Traefik qué red usar
-      - "traefik.docker.network=dokploy-network"
-
-      # Dashboard
-      - "traefik.http.routers.headscale-dash.rule=Host(`vpn.tudexnetworks.com`) && PathPrefix(`/dashboard`)"
-      - "traefik.http.routers.headscale-dash.entrypoints=web"
-      - "traefik.http.services.headscale-dash.loadbalancer.server.port=80"
-
-      # API
-      - "traefik.http.routers.headscale-api.rule=Host(`vpn.tudexnetworks.com`) && PathPrefix(`/api`, `/register`, `/apple`, `/windows`, `/oidc`)"
-      - "traefik.http.routers.headscale-api.entrypoints=web"
-      - "traefik.http.services.headscale-api.loadbalancer.server.port=8080"
-
-      # Satélites Mesh
-      - "traefik.http.routers.mesh-sites.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.tudexnetworks.com`)"
-      - "traefik.http.routers.mesh-sites.entrypoints=web"
-      - "traefik.http.services.mesh-sites.loadbalancer.server.port=80"
-
     environment:
-      - DB_TYPE=${DB_TYPE}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
+      - DB_TYPE=firebase
+      - FIREBASE_DB_URL=${FIREBASE_DB_URL}
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
+      - FIREBASE_API_KEY=${FIREBASE_API_KEY}
+      - VPN_IP_PREFIX=${VPN_IP_PREFIX:-100.64.0.0/10}
+      - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN:-vpn.internal}
+      - VPN_SERVER_URL=https://vpn.tudexnetworks.com
     ports:
-      - "8080:8080"
-      - "8404:8404"
-      - "41641:41641/udp"  # Puerto nativo de Wireguard
+      - "8081:80"         # HAProxy Edge
+      - "8080:8080"      # Headscale Control Plane
+      - "8404:8404"      # HAProxy Stats
+      - "41641:41641/udp"  # WireGuard Port
     volumes:
       - ./config:/etc/headscale
+      - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
       - headscale_data:/var/lib/headscale
       - headscale_run:/var/run/headscale
     networks:
-      - dokploy-network
+      - tudex_mesh_net
+
+  # --- NODO SATÉLITE 01 (PHP APP) ---
+  node-01:
+    build: ./satellite
+    container_name: node_01
+    restart: always
+    depends_on:
+      headscale:
+        condition: service_started
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - NODE_NAME=node-01
+      - VPN_SERVER_URL=http://headscale:8080
+      - VPN_AUTH_KEY=${TS_AUTHKEY}
+    networks:
+      - tudex_mesh_net
+
+  # --- NODO SATÉLITE 02 (PHP APP) ---
+  node-02:
+    build: ./satellite
+    container_name: node_02
+    restart: always
+    depends_on:
+      headscale:
+        condition: service_started
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - NODE_NAME=node-02
+      - VPN_SERVER_URL=http://headscale:8080
+      - VPN_AUTH_KEY=${TS_AUTHKEY}
+    networks:
       - tudex_mesh_net
 
 networks:
-  dokploy-network:
-    external: true
   tudex_mesh_net:
     driver: bridge
 

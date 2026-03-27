@@ -2,7 +2,7 @@
 # TUDEX NETWORKS - CONFIGURACIÓN CORE DE HEADSCALE
 # ============================================================
 
-server_url: https://vpn.tudexnetworks.com
+server_url: http://gateway_beta:8080
 listen_addr: 0.0.0.0:8080
 metrics_listen_addr: 0.0.0.0:9090
 
@@ -13,7 +13,7 @@ db_path: /var/lib/headscale/db.sqlite
 
 # --- RED PRIVADA (MESH) ---
 ip_prefixes:
-  - 100.64.0.0/10
+  - 100.65.0.0/16
 
 # --- DNS & MAGICDNS ---
 dns_config:

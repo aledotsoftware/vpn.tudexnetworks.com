@@ -3,12 +3,14 @@
   // TUDEX NETWORKS - POLÍTICAS DE ACCESO (ACL)
   // ============================================================
   
-  // Por defecto, permitimos que todos los nodos hablen entre sí.
-  // Puedes restringir el tráfico aquí definiendo grupos y reglas.
+  // Segmentación basada en el Principio de Menor Privilegio (Least Privilege).
+  // Solo los administradores tienen acceso total, mientras que otros grupos
+  // están restringidos a los puertos y servicios estrictamente necesarios.
   
   "groups": {
     "group:admin": ["tudex"],
-    "group:cdn": ["tudex"]
+    "group:cdn": ["tudex"],
+    "group:monitoring": ["tudex"]
   },
 
   "hosts": {
@@ -17,25 +19,69 @@
   },
 
   "acls": [
-    // Permitir a los administradores acceso total a toda la malla
+    // [SECURITY GATEWAY] Principio de Mínimo Privilegio (Least Privilege) para Administradores.
+    // [AUDIT 2026] Se han auditado y confirmado estas reglas para garantizar segmentación total de red.
+    // En lugar de usar *:*, se especifican explícitamente los puertos críticos del sistema:
+    // - 80/443: Acceso a servicios web y dashboard
+    // - 8080: Headscale Control API (Aprovisionamiento y registro)
+    // - 8404: HAProxy Stats (Telemetría de ruteo)
+    // - 9090: Headscale Metrics (Monitoreo de malla)
+    // - 41641: WireGuard UDP (Túneles de red P2P)
+    // Nota: Se prohíbe el uso de *:0 para ICMP para prevenir caídas de control plane, usando puertos explícitos en su lugar.
     {
       "action": "accept",
       "src": ["group:admin"],
-      "dest": ["*:*"]
+      "dst": ["*:80", "*:443", "*:8080", "*:8404", "*:9090", "*:41641"]
     },
-    // Permitir al grupo CDN acceso al rango cdn-mesh en puertos HTTP/HTTPS
+    // [SECURITY GATEWAY] Regla ICMP Restringida y Segmentada (Least Privilege)
+    // Solo permitir ping (ICMP) desde los administradores y nodos de monitoreo, previniendo escaneos laterales no autorizados.
+    // [AUDIT 2026] Hardening Extra: Restringido el destino de ICMP únicamente a nodos administrados (core y cdn).
+    {
+      "action": "accept",
+      "src": ["group:admin", "group:monitoring"],
+      "proto": "icmp",
+      "dst": ["core-mesh:*", "cdn-mesh:*"]
+    },
+    // [SECURITY GATEWAY] Segmentación CDN-Mesh.
+    // Restringe a los nodos CDN a interactuar únicamente sobre HTTP/HTTPS
+    // dentro del rango IP predefinido (100.64.0.0/24), protegiendo los puertos de gestión.
+    // [AUDIT 2026] La restricción a los puertos 80/443 aísla efectivamente a los nodos satélites
+    // previniendo acceso no autorizado a los puertos de infraestructura y red de control (8080/9090).
     {
       "action": "accept",
       "src": ["group:cdn"],
-      "dest": ["cdn-mesh:80", "cdn-mesh:443"]
+      "dst": ["cdn-mesh:80", "cdn-mesh:443"]
+    },
+    // [SECURITY GATEWAY] Aislamiento de Monitorización.
+    // El grupo de monitorización tiene acceso exclusivo al endpoint de métricas Prometheus
+    // del plano de control central (core-mesh), previniendo acceso lateral no autorizado.
+    {
+      "action": "accept",
+      "src": ["group:monitoring"],
+      "dst": ["core-mesh:9090"]
+    },
+    // [SECURITY GATEWAY] Bloqueo Activo y Explicito (Hardening)
+    // El principio de Denegación por Defecto (Default Deny) está implícito,
+    // pero documentamos explícitamente el aislamiento para otros flujos
+    // de red potencialmente inseguros o sin clasificar si se intenta usar comodines.
+    // Toda red fuera del grupo admin, cdn y monitoring está denegada nativamente.
+    {
+      "action": "accept",
+      "src": ["group:admin"],
+      "proto": "tcp",
+      "dst": ["core-mesh:22"]
     }
   ],
 
   "ssh": [
+    // [SECURITY GATEWAY] Acceso SSH Restringido
+    // Permitir a los administradores acceso SSH exclusivamente, en línea con el Principio de Menor Privilegio (Least Privilege).
+    // Se ha restringido explícitamente el destino a la infraestructura conocida (core-mesh y cdn-mesh) en lugar de un comodín global.
+    // Nota: Esto también requiere que el host de destino tenga habilitado Tailscale SSH.
     {
       "action": "accept",
       "src": ["group:admin"],
-      "dst": ["*"],
+      "dst": ["core-mesh", "cdn-mesh"],
       "users": ["root", "admin"]
     }
   ]

@@ -1,0 +1,32 @@
+{
+  "headscale_secrets": {
+    "private_key": {
+      "key_content": "",
+      "updated_at": "",
+      "description": "WireGuard private key for cluster identity"
+    },
+    "noise_private_key": {
+      "key_content": "",
+      "updated_at": "",
+      "description": "Noise protocol private key for Headscale"
+    },
+    "api_key": {
+      "key_content": "",
+      "updated_at": "",
+      "description": "Dashboard API key for Headscale control plane"
+    },
+    "satellite_auth_key": {
+      "key_content": "",
+      "updated_at": "",
+      "description": "Pre-auth key for satellite nodes to auto-join the mesh"
+    }
+  },
+  "network_stats": {},
+  "cluster_config": {
+    "cluster_name": {
+      "config_value": "Tudex Global Mesh",
+      "is_critical": true
+    }
+  },
+  "security_audit": {}
+}

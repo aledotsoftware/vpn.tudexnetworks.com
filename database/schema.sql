@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS headscale_secrets (
     description VARCHAR(255)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Mantenimiento de integridad: previene inserciones con nombres de clave vacíos
+ALTER TABLE headscale_secrets ADD CONSTRAINT check_key_name_not_empty CHECK (key_name <> '');
+
 -- 2. Histórico de Nodos y Salud
 -- Para generar las gráficas del Dashboard de forma persistente.
 CREATE TABLE IF NOT EXISTS network_stats (
@@ -43,6 +46,10 @@ CREATE TABLE IF NOT EXISTS security_audit (
     ip_source VARCHAR(45),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Índices para optimizar la monitorización y búsqueda de eventos de seguridad por tipo o fecha
+CREATE INDEX idx_security_audit_event_type ON security_audit(event_type);
+CREATE INDEX idx_security_audit_created_at ON security_audit(created_at);
 
 -- DATOS INICIALES DE EJEMPLO PARA EL DASHBOARD
 INSERT IGNORE INTO cluster_config (config_key, config_value, is_critical) 

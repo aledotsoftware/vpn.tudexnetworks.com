@@ -1,25 +1,8 @@
 services:
-  # Base de datos central para simular el cluster
-  mysql_cluster:
-    image: mariadb:latest
-    environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=headscale
-      - MYSQL_USER=tudex
-      - MYSQL_PASSWORD=tudex
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # Gateway (Tu contenedor)
+  # Gateway (Tu contenedor) - Conectado a Firebase (sin DB local)
   gateway:
     build: .
     container_name: vpn_gateway_local
-    depends_on:
-      mysql_cluster:
-        condition: service_healthy
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -29,14 +12,12 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
-      - DB_TYPE=postgres
-      - DB_HOST=mysql_cluster
-      - DB_PORT=3306
-      - DB_NAME=headscale
-      - DB_USER=tudex
-      - DB_PASS=tudex
+      - DB_TYPE=firebase
+      - FIREBASE_DB_URL=${FIREBASE_DB_URL}
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
+      - FIREBASE_API_KEY=${FIREBASE_API_KEY}
     ports:
-      - "8081:80"      # Dashboard y Balanceo (Cambiado de 80 a 8081 para Windows)
+      - "8081:80"      # Dashboard y Balanceo
       - "8080:8080"    # Headscale API
       - "8404:8404"    # Stats de HAProxy
     volumes:

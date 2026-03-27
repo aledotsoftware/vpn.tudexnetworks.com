@@ -11,8 +11,8 @@ FIREBASE_BASE_URL="${FIREBASE_DB_URL}"
 
 # --- FIREBASE HELPER FUNCTIONS ---
 firebase_get() {
-    local path="$1"
-    local result
+    path="$1"
+    result
     result=$(curl -s "${FIREBASE_BASE_URL}/${path}.json" 2>/dev/null)
     if [ "$result" = "null" ] || [ -z "$result" ]; then
         echo ""
@@ -22,28 +22,28 @@ firebase_get() {
 }
 
 firebase_put() {
-    local path="$1"
-    local data="$2"
+    path="$1"
+    data="$2"
     curl -s -X PUT -d "$data" "${FIREBASE_BASE_URL}/${path}.json" > /dev/null 2>&1
 }
 
 firebase_patch() {
-    local path="$1"
-    local data="$2"
+    path="$1"
+    data="$2"
     curl -s -X PATCH -d "$data" "${FIREBASE_BASE_URL}/${path}.json" > /dev/null 2>&1
 }
 
 firebase_post() {
-    local path="$1"
-    local data="$2"
+    path="$1"
+    data="$2"
     curl -s -X POST -d "$data" "${FIREBASE_BASE_URL}/${path}.json" > /dev/null 2>&1
 }
 
 audit_log() {
-    local event_type="$1"
-    local description="$2"
-    local ip_source="${3:-$MASTER_IP}"
-    local timestamp
+    event_type="$1"
+    description="$2"
+    ip_source="${3:-$MASTER_IP}"
+    timestamp
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     firebase_post "security_audit" "{\"event_type\":\"${event_type}\",\"description\":\"${description}\",\"ip_source\":\"${ip_source}\",\"created_at\":\"${timestamp}\"}" || true
 }
@@ -55,9 +55,9 @@ sync_domain_mappings() {
     MAPPINGS=$(curl -s "${FIREBASE_BASE_URL}/domain_mappings.json" 2>/dev/null)
 
     # Si no hay mappings o Firebase no responde, usar config base
-    if [ "$MAPPINGS" = "null" ] || [ -z "$MAPPINGS" ] || echo "$MAPPINGS" | jq empty 2>/dev/null; [ $? -ne 0 ]; then
+    if [ "$MAPPINGS" = "null" ] || [ -z "$MAPPINGS" ] || ! echo "$MAPPINGS" | jq empty 2>/dev/null; then
         if [ "$MAPPINGS" = "null" ] || [ -z "$MAPPINGS" ]; then
-            > /etc/headscale/domain-map.txt
+            true > /etc/headscale/domain-map.txt
             cp /usr/local/etc/haproxy/haproxy.cfg /tmp/haproxy-active.cfg 2>/dev/null || true
             return 1
         fi
@@ -73,7 +73,7 @@ sync_domain_mappings() {
     ' > /tmp/domain-map-new.txt 2>/dev/null
 
     # Generar backends dinámicos
-    > /tmp/dynamic-backends.cfg
+    true > /tmp/dynamic-backends.cfg
     KEYS=$(echo "$MAPPINGS" | jq -r '
         to_entries[] |
         select(.value.enabled == true) |
@@ -83,9 +83,9 @@ sync_domain_mappings() {
     ' 2>/dev/null)
 
     for key in $KEYS; do
-        echo "" >> /tmp/dynamic-backends.cfg
-        echo "backend backend_${key}" >> /tmp/dynamic-backends.cfg
-        echo "    balance roundrobin" >> /tmp/dynamic-backends.cfg
+        { echo "";
+        echo "backend backend_${key}";
+        echo "    balance roundrobin"; } >> /tmp/dynamic-backends.cfg
 
         NODES=$(echo "$MAPPINGS" | jq -r ".\"${key}\".nodes[]" 2>/dev/null)
         i=1
@@ -245,7 +245,7 @@ while [ $HS_RETRIES -lt $HS_MAX_RETRIES ]; do
   # Verificar que el proceso sigue vivo
   if ! kill -0 $HS_PID 2>/dev/null; then
     echo "❌ [CORE] Headscale se cerró inesperadamente. Log:"
-    cat /var/log/headscale.log 2>/dev/null | tail -20
+    tail -20 /var/log/headscale.log 2>/dev/null
     echo "🔄 [CORE] Reintentando arranque de Headscale..."
     headscale serve -c /etc/headscale/config.yaml > /var/log/headscale.log 2>&1 &
     HS_PID=$!
@@ -259,7 +259,7 @@ while [ $HS_RETRIES -lt $HS_MAX_RETRIES ]; do
 done
 if [ $HS_RETRIES -eq $HS_MAX_RETRIES ]; then
   echo "⚠️ [CORE] Headscale no respondió en 30s. Log de error:"
-  cat /var/log/headscale.log 2>/dev/null | tail -20
+  tail -20 /var/log/headscale.log 2>/dev/null
   echo "⚠️ [CORE] Continuando de todas formas..."
 fi
 
@@ -353,10 +353,8 @@ audit_log "GATEWAY_BOOT" "HAProxy Edge Gateway iniciado con ruteo dinámico de d
         [ -z "$COUNT_NUM" ] && COUNT_NUM=0
 
         # Validar conexión de BD para el healthcheck de telemetría, registramos caída silenciosa si falla
-        if timeout 2 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" --silent; then
-            mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO network_stats (node_count, active_connections, cluster_health_score) VALUES ($COUNT_NUM, $COUNT_NUM, 100);" || true
-        else
-            echo "[$(date -u)] SECURITY_AUDIT - EVENT: TELEMETRY_FAILURE - Base de datos inalcanzable durante volcado de métricas" >> /var/log/headscale_security_audit.log
+        if ! curl -s --max-time 2 "${FIREBASE_BASE_URL}/.json?shallow=true" >/dev/null; then
+            echo "[$(date -u)] SECURITY_AUDIT - EVENT: DB_ERROR - Base de datos inalcanzable durante volcado de métricas" >> /var/log/headscale_security_audit.log
         fi
 
         FB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${FIREBASE_BASE_URL}/.json?shallow=true" 2>/dev/null)
@@ -372,7 +370,7 @@ audit_log "GATEWAY_BOOT" "HAProxy Edge Gateway iniciado con ruteo dinámico de d
 ) &
 
 echo "🌐 TUDEX MESH: INFRAESTRUCTURA OPERATIVA"
-mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('SYSTEM_ONLINE', 'Infraestructura de Malla Operativa y Securizada', '$MASTER_IP');" || true
+audit_log "SYSTEM_ONLINE" "Infraestructura de Malla Operativa y Securizada"
 # 9. Domain Sync Agent (Actualización continua de ruteo)
 (
     echo "🔄 [SYNC] Agente de sincronización de dominios iniciado (cada 30s)..."
@@ -380,7 +378,8 @@ mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (e
         sleep 30
         if sync_domain_mappings; then
             # Cambios detectados → recargar HAProxy
-            haproxy -f /tmp/haproxy-active.cfg -D -p /var/run/haproxy.pid -sf $(cat /var/run/haproxy.pid 2>/dev/null) 2>/dev/null
+            # shellcheck disable=SC2046
+            haproxy -f /tmp/haproxy-active.cfg -D -p /var/run/haproxy.pid -sf $(cat /var/run/haproxy.pid 2>/dev/null) 2>/dev/null || true
             echo "[$(date -u)] DOMAIN_SYNC - HAProxy recargado con nuevos mapeos de dominio."
             audit_log "DOMAIN_SYNC" "HAProxy recargado con nuevos mapeos de dominio"
         fi

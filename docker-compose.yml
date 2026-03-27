@@ -30,6 +30,8 @@ services:
       - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
       - headscale_data:/var/lib/headscale
       - headscale_run:/var/run/headscale
+    secrets:
+      - db_pass
     networks:
       - tudex_mesh_net
 
@@ -80,3 +82,9 @@ networks:
 volumes:
   headscale_data:
   headscale_run:
+
+secrets:
+  headscale_auth_key:
+    environment: "TS_AUTHKEY"
+  db_pass:
+    environment: "DB_PASS"

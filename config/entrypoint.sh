@@ -1,6 +1,14 @@
 #!/bin/sh
 set -e
 
+# Secure Secrets Management
+if [ -f "/run/secrets/db_pass" ]; then
+    MYSQL_PWD="$(cat /run/secrets/db_pass)"
+    export MYSQL_PWD
+elif [ -n "$DB_PASS" ]; then
+    export MYSQL_PWD="$DB_PASS"
+fi
+
 # ============================================================
 # TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V23 - FIREBASE + DYNAMIC ROUTING)
 # ============================================================
@@ -46,6 +54,19 @@ audit_log() {
     local timestamp
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     firebase_post "security_audit" "{\"event_type\":\"${event_type}\",\"description\":\"${description}\",\"ip_source\":\"${ip_source}\",\"created_at\":\"${timestamp}\"}" || true
+
+    # Log to MySQL explicitly if database variables are present
+    if [ -n "$DB_HOST" ] && [ -n "$DB_USER" ] && [ -n "$DB_NAME" ]; then
+        # Escape single quotes and backslashes for SQL insertion
+        local safe_event_type
+        safe_event_type=$(printf "%s" "$event_type" | sed 's/\\/\\\\/g; s/'\''/''/g')
+        local safe_description
+        safe_description=$(printf "%s" "$description" | sed 's/\\/\\\\/g; s/'\''/''/g')
+        local safe_ip_source
+        safe_ip_source=$(printf "%s" "$ip_source" | sed 's/\\/\\\\/g; s/'\''/''/g')
+
+        mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('${safe_event_type}', '${safe_description}', '${safe_ip_source}');" || true
+    fi
 }
 
 # --- DOMAIN SYNC FUNCTION ---

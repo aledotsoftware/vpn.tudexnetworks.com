@@ -31,8 +31,8 @@ RUN apk add --no-cache \
     tailscale \
     iptables \
     xxd \
-    ip6tables && \
-    mkdir -p /etc/headscale /var/lib/headscale /var/run/headscale /usr/local/etc/haproxy
+    ip6tables \
+    mariadb-client && \
     mkdir -p /etc/headscale /var/lib/headscale /var/run/headscale /usr/local/etc/haproxy && \
     rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
 

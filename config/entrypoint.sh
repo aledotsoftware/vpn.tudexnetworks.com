@@ -220,6 +220,24 @@ echo "🔧 [CORE] Iniciando Headscale..."
 headscale serve -c /etc/headscale/config.yaml > /var/log/headscale.log 2>&1 &
 HS_PID=$!
 
+echo "⏳ [HS] Esperando inicialización del Control Plane (Headscale)..."
+HS_READY=false
+for i in $(seq 1 30); do
+    if curl -s --max-time 2 http://localhost:9090/metrics > /dev/null; then
+        HS_READY=true
+        break
+    fi
+    echo "⏳ [HS] Reintento $i/30..."
+    sleep 2
+done
+
+if [ "$HS_READY" = "false" ]; then
+    echo "❌ [HS] Error crítico: Headscale no respondió después de 60 segundos."
+    echo "⚠️ Mostrando últimos logs de Headscale:"
+    tail -n 20 /var/log/headscale.log || true
+    exit 1
+fi
+echo "✅ [HS] Control Plane inicializado correctamente."
 echo "⏳ [CORE] Esperando inicialización de Headscale (hasta 30s)..."
 HS_RETRIES=0
 HS_MAX_RETRIES=30

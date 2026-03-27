@@ -35,6 +35,7 @@
     },
     // [SECURITY GATEWAY] Regla ICMP Restringida y Segmentada (Least Privilege)
     // Solo permitir ping (ICMP) desde los administradores y nodos de monitoreo, previniendo escaneos laterales no autorizados.
+    // [AUDIT 2026] Hardening Extra: Restringido el destino de ICMP únicamente a nodos administrados (core y cdn).
     {
       "action": "accept",
       "src": ["group:admin", "group:monitoring"],

@@ -22,6 +22,7 @@
     // [SECURITY GATEWAY] Principio de Mínimo Privilegio (Least Privilege) para Administradores.
     // [AUDIT 2026] Se han auditado y confirmado estas reglas para garantizar segmentación total de red.
     // En lugar de usar *:*, se especifican explícitamente los puertos críticos del sistema:
+    // limitando su alcance solo a core-mesh y cdn-mesh para aislar el tráfico:
     // - 80/443: Acceso a servicios web y dashboard
     // - 8080: Headscale Control API (Aprovisionamiento y registro)
     // - 8404: HAProxy Stats (Telemetría de ruteo)
@@ -31,7 +32,7 @@
     {
       "action": "accept",
       "src": ["group:admin"],
-      "dst": ["*:80", "*:443", "*:8080", "*:8404", "*:9090", "*:41641"]
+      "dst": ["core-mesh:80", "core-mesh:443", "core-mesh:8080", "core-mesh:8404", "core-mesh:9090", "core-mesh:41641", "cdn-mesh:80", "cdn-mesh:443", "cdn-mesh:41641"]
     },
     // [SECURITY GATEWAY] Regla ICMP Restringida y Segmentada (Least Privilege)
     // Solo permitir ping (ICMP) desde los administradores y nodos de monitoreo, previniendo escaneos laterales no autorizados.

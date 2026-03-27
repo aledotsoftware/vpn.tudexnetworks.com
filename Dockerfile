@@ -26,6 +26,8 @@ FROM alpine:3.19
 RUN apk add --no-cache \
     haproxy \
     jq \
+    mariadb-client \
+    mariadb-connector-c \
     ca-certificates \
     curl \
     tailscale \

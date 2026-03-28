@@ -31,7 +31,7 @@
     {
       "action": "accept",
       "src": ["group:admin"],
-      "dst": ["*:80", "*:443", "*:8080", "*:8404", "*:9090", "*:41641"]
+      "dst": ["core-mesh:80", "core-mesh:443", "core-mesh:8080", "core-mesh:8404", "core-mesh:9090", "core-mesh:41641", "cdn-mesh:80", "cdn-mesh:443", "cdn-mesh:41641"]
     },
     // [SECURITY GATEWAY] Regla ICMP Restringida y Segmentada (Least Privilege)
     // Solo permitir ping (ICMP) desde los administradores y nodos de monitoreo, previniendo escaneos laterales no autorizados.
@@ -69,7 +69,7 @@
       "action": "accept",
       "src": ["group:admin"],
       "proto": "tcp",
-      "dst": ["core-mesh:22"]
+      "dst": ["core-mesh:22", "cdn-mesh:22"]
     }
   ],
 

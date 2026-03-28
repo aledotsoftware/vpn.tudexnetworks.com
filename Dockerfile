@@ -1,12 +1,3 @@
-# Etapa 1: Builder
-FROM alpine:3.19 AS builder
-RUN apk add --no-cache curl && \
-    curl -L https://github.com/juanfont/headscale/releases/download/v0.22.3/headscale_0.22.3_linux_amd64 -o /bin/headscale && \
-    chmod +x /bin/headscale
-
-# Etapa 2: Imagen Final
-FROM alpine:3.19
-
 # Build stage para descargar dependencias pesadas
 FROM alpine:3.19 AS builder
 RUN apk add --no-cache curl && \
@@ -22,22 +13,19 @@ RUN apk add --no-cache curl && \
 FROM alpine:3.19
 
 # Instalamos HAProxy y dependencias
-# jq reemplaza a mariadb-client para parsear respuestas JSON de Firebase
+# jq para parsear respuestas JSON de Firebase y mariadb-client para MySQL logging legacy
 RUN apk add --no-cache \
     haproxy \
     jq \
+    mariadb-client \
     ca-certificates \
     curl \
     tailscale \
     iptables \
     xxd \
     ip6tables && \
-    mkdir -p /etc/headscale /var/lib/headscale /var/run/headscale /usr/local/etc/haproxy
     mkdir -p /etc/headscale /var/lib/headscale /var/run/headscale /usr/local/etc/haproxy && \
     rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
-
-# Copiamos el binario compilado/descargado desde la fase builder
-COPY --from=builder /bin/headscale /bin/headscale
 
 # Copiar el binario desde la etapa builder
 COPY --from=builder /bin/headscale /bin/headscale

@@ -28,10 +28,11 @@
     // - 9090: Headscale Metrics (Monitoreo de malla)
     // - 41641: WireGuard UDP (Túneles de red P2P)
     // Nota: Se prohíbe el uso de *:0 para ICMP para prevenir caídas de control plane, usando puertos explícitos en su lugar.
+    // [AUDIT 2026] Se restringe el destino a las mallas de infraestructura en lugar de permitir comodines de dominio cruzado.
     {
       "action": "accept",
       "src": ["group:admin"],
-      "dst": ["*:80", "*:443", "*:8080", "*:8404", "*:9090", "*:41641"]
+      "dst": ["core-mesh:80", "core-mesh:443", "core-mesh:8080", "core-mesh:8404", "core-mesh:9090", "core-mesh:41641", "cdn-mesh:80", "cdn-mesh:443", "cdn-mesh:41641"]
     },
     // [SECURITY GATEWAY] Regla ICMP Restringida y Segmentada (Least Privilege)
     // Solo permitir ping (ICMP) desde los administradores y nodos de monitoreo, previniendo escaneos laterales no autorizados.

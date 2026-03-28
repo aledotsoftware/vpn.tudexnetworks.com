@@ -1,0 +1,8 @@
+HTTP/1.1 405 Method Not Allowed
+Cache-Control: no-cache
+Connection: close
+Content-Type: text/html
+
+<html><body><h1>405 Method Not Allowed</h1>
+No se permite el método TRACE.
+</body></html>

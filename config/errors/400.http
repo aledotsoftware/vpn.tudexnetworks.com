@@ -1,6 +1,8 @@
-HTTP/1.0 400 Bad Request
+HTTP/1.1 400 Bad Request
 Cache-Control: no-cache
 Connection: close
 Content-Type: text/html
 
-<html><body><h1>400 Bad Request</h1><p>The server could not comply with the request since it is either malformed or otherwise incorrect.</p></body></html>
+<html><body><h1>400 Bad Request</h1>
+Your browser sent an invalid request.
+</body></html>

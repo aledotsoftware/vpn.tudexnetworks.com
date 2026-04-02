@@ -24,6 +24,8 @@ echo "⚖️ [TEST] Validando sintaxis de HAProxy..."
 mkdir -p /tmp/etc/headscale/errors
 cp config/errors/* /tmp/etc/headscale/errors/ 2>/dev/null || true
 touch /tmp/etc/headscale/dashboard.html
+touch /tmp/etc/headscale/admin-panel.html
+touch /tmp/etc/headscale/domain-map.txt
 
 # Create a temporary config that points to /tmp instead of /etc for the local syntax check
 sed 's|/etc/headscale|/tmp/etc/headscale|g' config/haproxy.cfg > /tmp/haproxy_test.cfg

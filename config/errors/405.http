@@ -1,0 +1,6 @@
+HTTP/1.0 405 Method Not Allowed
+Cache-Control: no-cache
+Connection: close
+Content-Type: text/html
+
+<html><body><h1>405 Method Not Allowed</h1><p>The method is not allowed for the requested URL.</p></body></html>

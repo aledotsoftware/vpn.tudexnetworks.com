@@ -213,6 +213,9 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
     if [ "$DB_READY" = "false" ]; then
         echo "❌ [DB] Error crítico: No se pudo conectar a MariaDB después de $MAX_RETRIES intentos."
         echo "[$(date -u)] SECURITY_AUDIT - EVENT: DB_ERROR - Fallo en inicialización de conexión a MariaDB" >> /var/log/headscale_security_audit.log
+    else
+        echo "🔧 [DB] Aplicando esquema de base de datos a MariaDB..."
+        mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" < /etc/headscale/schema.sql || echo "⚠️ [DB] Fallo al aplicar el esquema a MariaDB. Continuará de todos modos."
     fi
 fi
 

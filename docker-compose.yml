@@ -17,6 +17,10 @@ services:
       - FIREBASE_DB_URL=${FIREBASE_DB_URL}
       - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
       - FIREBASE_API_KEY=${FIREBASE_API_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_USER=${DB_USER}
+      - DB_NAME=${DB_NAME}
+      - DB_PASS=${DB_PASS}
       - VPN_IP_PREFIX=${VPN_IP_PREFIX:-100.64.0.0/10}
       - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN:-vpn.internal}
       - VPN_SERVER_URL=${VPN_SERVER_URL:-http://headscale:8080}

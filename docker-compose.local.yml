@@ -16,6 +16,10 @@ services:
       - FIREBASE_DB_URL=${FIREBASE_DB_URL}
       - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
       - FIREBASE_API_KEY=${FIREBASE_API_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_USER=${DB_USER}
+      - DB_NAME=${DB_NAME}
+      - DB_PASS=${DB_PASS}
     ports:
       - "8081:80"      # Dashboard y Balanceo
       - "8080:8080"    # Headscale API

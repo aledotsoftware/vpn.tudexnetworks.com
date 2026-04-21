@@ -23,8 +23,8 @@ echo "⚖️ [TEST] Validando sintaxis de HAProxy..."
 
 mkdir -p /tmp/etc/headscale/errors
 cp config/errors/* /tmp/etc/headscale/errors/ 2>/dev/null || true
-touch /tmp/etc/headscale/dashboard.html
-touch /tmp/etc/headscale/admin-panel.html
+echo "<html><body>dashboard</body></html>" > /tmp/etc/headscale/dashboard.html
+echo "<html><body>admin</body></html>" > /tmp/etc/headscale/admin-panel.html
 touch /tmp/etc/headscale/domain-map.txt
 
 # Create a temporary config that points to /tmp instead of /etc for the local syntax check

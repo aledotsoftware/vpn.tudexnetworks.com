@@ -19,7 +19,7 @@ services:
       - FIREBASE_API_KEY=${FIREBASE_API_KEY}
       - VPN_IP_PREFIX=${VPN_IP_PREFIX:-100.64.0.0/10}
       - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN:-vpn.internal}
-      - VPN_SERVER_URL=https://vpn.tudexnetworks.com
+      - VPN_SERVER_URL=${VPN_SERVER_URL:-http://headscale:8080}
     ports:
       - "8081:80"         # HAProxy Edge
       - "8080:8080"      # Headscale Control Plane
@@ -48,7 +48,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     environment:
       - NODE_NAME=node-01
-      - VPN_SERVER_URL=http://headscale:8080
+      - VPN_SERVER_URL=${VPN_SERVER_URL:-http://headscale:8080}
       - VPN_AUTH_KEY=${TS_AUTHKEY}
     networks:
       - tudex_mesh_net
@@ -68,7 +68,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     environment:
       - NODE_NAME=node-02
-      - VPN_SERVER_URL=http://headscale:8080
+      - VPN_SERVER_URL=${VPN_SERVER_URL:-http://headscale:8080}
       - VPN_AUTH_KEY=${TS_AUTHKEY}
     networks:
       - tudex_mesh_net

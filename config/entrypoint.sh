@@ -62,7 +62,7 @@ audit_log() {
         # shellcheck disable=SC3043
         local safe_desc
         safe_desc=$(printf "%s" "$description" | sed 's/\\/\\\\/g; s/'\''/''/g')
-        mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('$event_type', '$safe_desc', '$ip_source');" || true
+        mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('$event_type', '$safe_desc', '$ip_source');" || true
     fi
 }
 
@@ -189,6 +189,32 @@ echo "✅ [DB] Conexión con Firebase establecida."
 MASTER_IP=$(ip -4 addr show eth0 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n 1)
 [ -z "$MASTER_IP" ] && MASTER_IP=$(hostname -i | awk '{print $1}')
 MASTER_DOMAIN=$(grep "server_url:" /etc/headscale/config.yaml | awk '{print $2}' | sed 's|https://||' | sed 's|http://||' | sed 's|:.*||')
+
+# Conexión MariaDB con Exponential Backoff
+if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
+    echo "⏳ [DB] Esperando conexión a MariaDB..."
+    DB_READY=false
+    RETRY_COUNT=0
+    MAX_RETRIES=10
+    DELAY=1
+
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        if timeout 2 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" --silent > /dev/null 2>&1; then
+            DB_READY=true
+            echo "✅ [DB] Conexión a MariaDB establecida exitosamente."
+            break
+        fi
+        echo "⏳ [DB] MariaDB no disponible, reintentando en ${DELAY}s (Intento $((RETRY_COUNT + 1))/$MAX_RETRIES)..."
+        sleep "$DELAY"
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        DELAY=$((DELAY * 2))
+    done
+
+    if [ "$DB_READY" = "false" ]; then
+        echo "❌ [DB] Error crítico: No se pudo conectar a MariaDB después de $MAX_RETRIES intentos."
+        echo "[$(date -u)] SECURITY_AUDIT - EVENT: DB_ERROR - Fallo en inicialización de conexión a MariaDB" >> /var/log/headscale_security_audit.log
+    fi
+fi
 
 # Inicializar estructura base en Firebase
 EXISTING=$(curl -s "${FIREBASE_BASE_URL}/cluster_config/cluster_name.json" 2>/dev/null)
@@ -397,8 +423,8 @@ audit_log "GATEWAY_BOOT" "HAProxy Edge Gateway iniciado con ruteo dinámico de d
         [ -z "$COUNT_NUM" ] && COUNT_NUM=0
 
         # Validar conexión de BD para el healthcheck de telemetría, registramos caída silenciosa si falla
-        if timeout 2 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" --silent; then
-            mariadb -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" -e "INSERT INTO network_stats (node_count, active_connections, cluster_health_score) VALUES ($COUNT_NUM, $COUNT_NUM, 100);" || true
+        if timeout 2 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" --silent; then
+            mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" -e "INSERT INTO network_stats (node_count, active_connections, cluster_health_score) VALUES ($COUNT_NUM, $COUNT_NUM, 100);" || true
         else
             echo "[$(date -u)] SECURITY_AUDIT - EVENT: TELEMETRY_FAILURE - Base de datos inalcanzable durante volcado de métricas" >> /var/log/headscale_security_audit.log
         fi

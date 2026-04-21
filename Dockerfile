@@ -15,9 +15,11 @@ FROM alpine:3.19
 
 # Instalamos HAProxy y dependencias
 # jq reemplaza a mariadb-client para parsear respuestas JSON de Firebase
+# mariadb-client es añadido de vuelta para compatibilidad de logs legacy
 RUN apk add --no-cache \
     haproxy \
     jq \
+    mariadb-client \
     ca-certificates \
     curl \
     tailscale \

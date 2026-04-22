@@ -7,6 +7,19 @@ set -e
 # Base de datos: Google Firebase Realtime Database
 # Ruteo dinámico: Domain mappings en Firebase → HAProxy config auto-generado
 
+# Función segura para cargar secretos (Archivos o Variables)
+get_secret() {
+    # shellcheck disable=SC3043
+    local file_path="$1"
+    # shellcheck disable=SC3043
+    local env_var_name="$2"
+    if [ -f "$file_path" ]; then
+        tr -d '\n\r' < "$file_path"
+    else
+        eval "printf '%s\n' \"\$${env_var_name}\"" | tr -d '\n\r'
+    fi
+}
+
 FIREBASE_BASE_URL="${FIREBASE_DB_URL}"
 
 # --- FIREBASE HELPER FUNCTIONS ---
@@ -233,37 +246,23 @@ audit_log "TUN_INITIALIZED" "Interfaz de túnel VPN asegurada e inicializada"
 audit_log "SECRETS_LOADED" "Credenciales cacheadas de manera aislada (Entorno / Secrets)"
 
 # 2. Gestión de Identidad del Cluster
-if [ -f /run/secrets/headscale_private_key ]; then
-    PRIVATE_KEY=$(cat /run/secrets/headscale_private_key)
-elif [ -n "$HEADSCALE_PRIVATE_KEY" ]; then
-    PRIVATE_KEY="$HEADSCALE_PRIVATE_KEY"
-else
+PRIVATE_KEY=$(get_secret "/run/secrets/headscale_private_key" "HEADSCALE_PRIVATE_KEY")
+if [ -z "$PRIVATE_KEY" ]; then
     PRIVATE_KEY=$(firebase_get "headscale_secrets/private_key/key_content")
 fi
 
-if [ -f /run/secrets/headscale_noise_private_key ]; then
-    NOISE_KEY=$(cat /run/secrets/headscale_noise_private_key)
-elif [ -n "$HEADSCALE_NOISE_PRIVATE_KEY" ]; then
-    NOISE_KEY="$HEADSCALE_NOISE_PRIVATE_KEY"
-else
+NOISE_KEY=$(get_secret "/run/secrets/headscale_noise_private_key" "HEADSCALE_NOISE_PRIVATE_KEY")
+if [ -z "$NOISE_KEY" ]; then
     NOISE_KEY=$(firebase_get "headscale_secrets/noise_private_key/key_content")
 fi
 
-if [ -f /run/secrets/db_pass ]; then
-    MYSQL_PWD=$(cat /run/secrets/db_pass)
-    # shellcheck disable=SC2030
-    # shellcheck disable=SC2031
-    export MYSQL_PWD
-elif [ -n "$DB_PASS" ]; then
-    MYSQL_PWD="$DB_PASS"
-    export MYSQL_PWD
-fi
+MYSQL_PWD=$(get_secret "/run/secrets/db_pass" "DB_PASS")
+# shellcheck disable=SC2030
+# shellcheck disable=SC2031
+export MYSQL_PWD
 
-if [ -f /run/secrets/admin_password ]; then
-    ADMIN_PANEL_PASSWORD=$(cat /run/secrets/admin_password)
-elif [ -n "$ADMIN_PASSWORD" ]; then
-    ADMIN_PANEL_PASSWORD="$ADMIN_PASSWORD"
-else
+ADMIN_PANEL_PASSWORD=$(get_secret "/run/secrets/admin_password" "ADMIN_PASSWORD")
+if [ -z "$ADMIN_PANEL_PASSWORD" ]; then
     # Fallback securely generate a random password
     ADMIN_PANEL_PASSWORD=$(head -c 16 /dev/urandom | xxd -p -c 16)
     echo "⚠️ [AUTH] Fallback a contraseña auto-generada para panel de administración: No se proveyó ADMIN_PASSWORD."

@@ -9,13 +9,8 @@ if command -v shellcheck &> /dev/null; then
     shellcheck config/entrypoint.sh
     echo "✅ [TEST] Entrypoint validado (nativo)."
 else
-    echo "⚠️ [TEST] shellcheck nativo no encontrado. Usando fallback de Docker..."
-    if docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:stable /mnt/config/entrypoint.sh; then
-        echo "✅ [TEST] Entrypoint validado (Docker fallback)."
-    else
-        echo "❌ [TEST] Error en validación de shellcheck."
-        exit 1
-    fi
+    echo "❌ [TEST] shellcheck nativo no encontrado. Por favor instálalo para continuar (sudo apt-get install shellcheck)."
+    exit 1
 fi
 
 # 2. HAProxy config check
@@ -39,15 +34,8 @@ if command -v haproxy &> /dev/null; then
         exit 1
     fi
 else
-    echo "⚠️ [TEST] haproxy nativo no encontrado. Usando fallback de Docker..."
-    # Map /tmp directory into container to allow validation against the mock paths
-    if docker run --rm -v /tmp:/tmp haproxy:latest haproxy -c -f /tmp/haproxy_test.cfg &> /dev/null; then
-        echo "✅ [TEST] HAProxy config correcta (Docker fallback)."
-    else
-        echo "❌ [TEST] Error en HAProxy config."
-        docker run --rm -v /tmp:/tmp haproxy:latest haproxy -c -f /tmp/haproxy_test.cfg
-        exit 1
-    fi
+    echo "❌ [TEST] haproxy nativo no encontrado. Por favor instálalo para continuar (sudo apt-get install haproxy)."
+    exit 1
 fi
 
 # 3. Validar YAML linting
@@ -60,13 +48,8 @@ if command -v yamllint &> /dev/null; then
         exit 1
     fi
 else
-    echo "⚠️ [TEST] yamllint nativo no encontrado. Usando fallback de Docker..."
-    if docker run --rm -v "$PWD:/data" cytopia/yamllint .; then
-        echo "✅ [TEST] Todos los archivos YAML pasaron la validación (Docker fallback)."
-    else
-        echo "❌ [TEST] Se encontraron errores de linting en los archivos YAML."
-        exit 1
-    fi
+    echo "❌ [TEST] yamllint nativo no encontrado. Por favor instálalo para continuar (sudo apt-get install yamllint)."
+    exit 1
 fi
 
 # 4. Docker Compose config

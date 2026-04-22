@@ -202,6 +202,11 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
         if timeout 2 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" --silent > /dev/null 2>&1; then
             DB_READY=true
             echo "✅ [DB] Conexión a MariaDB establecida exitosamente."
+            # Ensure schema is applied immediately after connection and before any insertions
+            if [ -f /etc/headscale/schema.sql ]; then
+                echo "🔧 [DB] Aplicando esquema de base de datos..."
+                mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" < /etc/headscale/schema.sql || echo "⚠️ [DB] Error al aplicar esquema. Puede que ya exista."
+            fi
             break
         fi
         echo "⏳ [DB] MariaDB no disponible, reintentando en ${DELAY}s (Intento $((RETRY_COUNT + 1))/$MAX_RETRIES)..."
@@ -252,6 +257,16 @@ if [ -f /run/secrets/db_pass ]; then
 elif [ -n "$DB_PASS" ]; then
     MYSQL_PWD="$DB_PASS"
     export MYSQL_PWD
+fi
+
+if [ -f /run/secrets/admin_password ]; then
+    ADMIN_PANEL_PASSWORD=$(cat /run/secrets/admin_password)
+elif [ -n "$ADMIN_PASSWORD" ]; then
+    ADMIN_PANEL_PASSWORD="$ADMIN_PASSWORD"
+else
+    # Fallback securely generate a random password
+    ADMIN_PANEL_PASSWORD=$(head -c 16 /dev/urandom | xxd -p -c 16)
+    echo "⚠️ [AUTH] Fallback a contraseña auto-generada para panel de administración: No se proveyó ADMIN_PASSWORD."
 fi
 
 mkdir -p /var/lib/headscale /var/run/headscale
@@ -373,10 +388,27 @@ if [ -z "$SATELLITE_KEY" ]; then
 fi
 
 # 5. Dashboard & Admin Panel Patching
-sed -i "s|%%DASHBOARD_API_KEY%%|$API_KEY|g" /etc/headscale/dashboard.html
-sed -i "s|%%MASTER_IP%%|$MASTER_IP|g" /etc/headscale/dashboard.html
-sed -i "s|%%MASTER_DOMAIN%%|$MASTER_DOMAIN|g" /etc/headscale/dashboard.html
-sed -i "s|%%FIREBASE_DB_URL%%|$FIREBASE_BASE_URL|g" /etc/headscale/admin-panel.html
+
+# Sanitize variables for sed
+SAFE_API_KEY=$(printf "%s" "$API_KEY" | sed 's/[&/\]/\\&/g')
+SAFE_MASTER_IP=$(printf "%s" "$MASTER_IP" | sed 's/[&/\]/\\&/g')
+SAFE_MASTER_DOMAIN=$(printf "%s" "$MASTER_DOMAIN" | sed 's/[&/\]/\\&/g')
+SAFE_FIREBASE_BASE_URL=$(printf "%s" "$FIREBASE_BASE_URL" | sed 's/[&/\]/\\&/g')
+SAFE_ADMIN_PANEL_PASSWORD=$(printf "%s" "$ADMIN_PANEL_PASSWORD" | awk '{gsub(/["\\]/,"\\\\&")}1' | sed 's/[&/\]/\\&/g')
+
+sed -i "s/%%DASHBOARD_API_KEY%%/${SAFE_API_KEY}/g" /etc/headscale/dashboard.html
+sed -i "s/%%MASTER_IP%%/${SAFE_MASTER_IP}/g" /etc/headscale/dashboard.html
+sed -i "s/%%MASTER_DOMAIN%%/${SAFE_MASTER_DOMAIN}/g" /etc/headscale/dashboard.html
+sed -i "s/%%FIREBASE_DB_URL%%/${SAFE_FIREBASE_BASE_URL}/g" /etc/headscale/admin-panel.html
+sed -i "s/%%ADMIN_PASSWORD%%/${SAFE_ADMIN_PANEL_PASSWORD}/g" /etc/headscale/admin-panel.html
+
+# Fix HAProxy CSP to include the dynamic Firebase domain
+FIREBASE_DOMAIN=$(echo "$FIREBASE_BASE_URL" | awk -F/ '{print $3}')
+if [ -n "$FIREBASE_DOMAIN" ]; then
+    sed -i "s|%%FIREBASE_DOMAIN%%|https://$FIREBASE_DOMAIN|g" /usr/local/etc/haproxy/haproxy.cfg
+else
+    sed -i "s|%%FIREBASE_DOMAIN%%||g" /usr/local/etc/haproxy/haproxy.cfg
+fi
 
 # 6. Domain Sync Inicial + HAProxy Launch
 echo "🔄 [SYNC] Sincronizando mapeos de dominio desde Firebase..."

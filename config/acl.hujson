@@ -36,11 +36,13 @@
     // [SECURITY GATEWAY] Regla ICMP Restringida y Segmentada (Least Privilege)
     // Solo permitir ping (ICMP) desde los administradores y nodos de monitoreo, previniendo escaneos laterales no autorizados.
     // [AUDIT 2026] Hardening Extra: Restringido el destino de ICMP únicamente a nodos administrados (core y cdn).
+    // Nota: El uso de comodines de puerto ("*:*") está obsoleto/no recomendado, incluso para ICMP.
+    // Dado que ICMP no usa puertos, se restringe a las direcciones específicas de la red.
     {
       "action": "accept",
       "src": ["group:admin", "group:monitoring"],
       "proto": "icmp",
-      "dst": ["core-mesh:*", "cdn-mesh:*"]
+      "dst": ["core-mesh", "cdn-mesh"]
     },
     // [SECURITY GATEWAY] Segmentación CDN-Mesh.
     // Restringe a los nodos CDN a interactuar únicamente sobre HTTP/HTTPS

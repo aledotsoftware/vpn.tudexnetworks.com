@@ -2,6 +2,7 @@ HTTP/1.0 404 Not Found
 Cache-Control: no-cache
 Connection: close
 Content-Type: text/html
+Server: Gateway
 
 <html><body><h1>404 Not Found</h1>
 <p>The requested resource was not found on this server.</p>

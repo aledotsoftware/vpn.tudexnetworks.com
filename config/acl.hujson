@@ -71,7 +71,7 @@
       "action": "accept",
       "src": ["group:admin"],
       "proto": "tcp",
-      "dst": ["core-mesh:22"]
+      "dst": ["core-mesh:22", "cdn-mesh:22"]
     }
   ],
 

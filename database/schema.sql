@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS cluster_config (
 CREATE TABLE IF NOT EXISTS security_audit (
     id INT AUTO_INCREMENT PRIMARY KEY,
     event_type VARCHAR(64), -- 'NODE_JOIN', 'KEY_ROTATION', 'ACL_UPDATE'
+    severity VARCHAR(16) DEFAULT 'INFO', -- 'INFO', 'WARN', 'CRITICAL'
     description TEXT,
     ip_source VARCHAR(45),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

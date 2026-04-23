@@ -62,6 +62,13 @@
       "src": ["group:monitoring"],
       "dst": ["core-mesh:9090"]
     },
+    // [SECURITY GATEWAY] DNS Interno (MagicDNS).
+    // Permitir resolución de DNS a través de la malla sin comodines.
+    {
+      "action": "accept",
+      "src": ["group:admin", "group:cdn", "group:monitoring"],
+      "dst": ["core-mesh:53", "cdn-mesh:53"]
+    },
     // [SECURITY GATEWAY] Bloqueo Activo y Explicito (Hardening)
     // El principio de Denegación por Defecto (Default Deny) está implícito,
     // pero documentamos explícitamente el aislamiento para otros flujos

@@ -66,16 +66,18 @@ audit_log() {
     # shellcheck disable=SC3043
     local description="$2"
     # shellcheck disable=SC3043
-    local ip_source="${3:-$MASTER_IP}"
+    local severity="${3:-INFO}"
+    # shellcheck disable=SC3043
+    local ip_source="${4:-$MASTER_IP}"
     # shellcheck disable=SC3043
     local timestamp
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    firebase_post "security_audit" "{\"event_type\":\"${event_type}\",\"description\":\"${description}\",\"ip_source\":\"${ip_source}\",\"created_at\":\"${timestamp}\"}" || true
+    firebase_post "security_audit" "{\"event_type\":\"${event_type}\",\"severity\":\"${severity}\",\"description\":\"${description}\",\"ip_source\":\"${ip_source}\",\"created_at\":\"${timestamp}\"}" || true
     if command -v mariadb >/dev/null 2>&1; then
         # shellcheck disable=SC3043
         local safe_desc
         safe_desc=$(printf "%s" "$description" | sed 's/\\/\\\\/g; s/'\''/''/g')
-        mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" -e "INSERT INTO security_audit (event_type, description, ip_source) VALUES ('$event_type', '$safe_desc', '$ip_source');" || true
+        mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" -e "INSERT INTO security_audit (event_type, severity, description, ip_source) VALUES ('$event_type', '$severity', '$safe_desc', '$ip_source');" || true
     fi
 }
 
@@ -149,7 +151,7 @@ sync_domain_mappings() {
 }
 
 # Configurar trap para salir limpiamente
-trap 'echo "🛑 Recibido SIGTERM/SIGINT. Saliendo..."; audit_log "GATEWAY_SHUTDOWN" "Gateway detenido exitosamente" "$MASTER_IP" 2>/dev/null || true; kill $(jobs -p) 2>/dev/null; exit 0' TERM INT
+trap 'echo "🛑 Recibido SIGTERM/SIGINT. Saliendo..."; audit_log "GATEWAY_SHUTDOWN" "Gateway detenido exitosamente" "WARN" "$MASTER_IP" 2>/dev/null || true; kill $(jobs -p) 2>/dev/null; exit 0' TERM INT
 
 echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V23 - FIREBASE + DYNAMIC ROUTING)"
 

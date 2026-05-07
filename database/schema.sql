@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS security_audit (
 CREATE INDEX idx_security_audit_event_type ON security_audit(event_type);
 CREATE INDEX idx_security_audit_created_at ON security_audit(created_at);
 CREATE INDEX idx_security_audit_ip_source ON security_audit(ip_source);
+CREATE INDEX idx_security_audit_severity ON security_audit(severity);
 CREATE INDEX idx_network_stats_snapshot_time ON network_stats(snapshot_time);
 
 -- DATOS INICIALES DE EJEMPLO PARA EL DASHBOARD

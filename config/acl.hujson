@@ -55,12 +55,13 @@
       "dst": ["cdn-mesh:80", "cdn-mesh:443"]
     },
     // [SECURITY GATEWAY] Aislamiento de Monitorización.
-    // El grupo de monitorización tiene acceso exclusivo al endpoint de métricas Prometheus
-    // del plano de control central (core-mesh), previniendo acceso lateral no autorizado.
+    // El grupo de monitorización tiene acceso exclusivo a los endpoints de métricas Prometheus
+    // del plano de control central (core-mesh:9090, core-mesh:9100) y satélites (cdn-mesh:9100),
+    // previniendo acceso lateral no autorizado de acuerdo con el Principio de Menor Privilegio.
     {
       "action": "accept",
       "src": ["group:monitoring"],
-      "dst": ["core-mesh:9090"]
+      "dst": ["core-mesh:9090", "core-mesh:9100", "cdn-mesh:9100"]
     },
     // [SECURITY GATEWAY] DNS Interno (MagicDNS).
     // Permitir resolución de DNS a través de la malla sin comodines.

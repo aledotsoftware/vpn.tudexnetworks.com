@@ -319,6 +319,7 @@ done
 
 if [ "$HS_READY" = "false" ]; then
     echo "❌ [HS] Error crítico: Headscale no respondió después de 60 segundos."
+    audit_log "HS_ERROR" "Fallo crítico en la inicialización de Headscale" "CRITICAL"
     echo "⚠️ Mostrando últimos logs de Headscale:"
     tail -n 20 /var/log/headscale.log || true
     exit 1

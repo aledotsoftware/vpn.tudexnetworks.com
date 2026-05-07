@@ -132,8 +132,10 @@ sync_domain_mappings() {
 
     # Combinar: config base + backends dinámicos
     sed '/^# __DYNAMIC_BACKENDS_START__/,$d' /usr/local/etc/haproxy/haproxy.cfg > /tmp/haproxy-new.cfg
-    echo "# __DYNAMIC_BACKENDS_START__" >> /tmp/haproxy-new.cfg
-    cat /tmp/dynamic-backends.cfg >> /tmp/haproxy-new.cfg
+    {
+        echo "# __DYNAMIC_BACKENDS_START__"
+        cat /tmp/dynamic-backends.cfg
+    } >> /tmp/haproxy-new.cfg
 
     # Verificar si hubo cambios
     if [ -f /tmp/haproxy-active.cfg ]; then
@@ -282,8 +284,8 @@ else
     head -c 32 /dev/urandom | xxd -p -c 32 > /var/lib/headscale/private.key
     head -c 32 /dev/urandom | xxd -p -c 32 > /var/lib/headscale/noise_private.key
     TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    PRIV_KEY_CONTENT=$(cat /var/lib/headscale/private.key)
-    NOISE_KEY_CONTENT=$(cat /var/lib/headscale/noise_private.key)
+    PRIV_KEY_CONTENT=$(tr -d '\n\r' < /var/lib/headscale/private.key)
+    NOISE_KEY_CONTENT=$(tr -d '\n\r' < /var/lib/headscale/noise_private.key)
     firebase_put "headscale_secrets/private_key" "{\"key_content\":\"${PRIV_KEY_CONTENT}\",\"updated_at\":\"${TIMESTAMP}\",\"description\":\"WireGuard private key\"}"
     firebase_put "headscale_secrets/noise_private_key" "{\"key_content\":\"${NOISE_KEY_CONTENT}\",\"updated_at\":\"${TIMESTAMP}\",\"description\":\"Noise protocol private key\"}"
     audit_log "KEY_ROTATION" "Generación inicial dinámica de claves WireGuard/Noise"

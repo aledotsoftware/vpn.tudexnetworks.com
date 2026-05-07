@@ -392,11 +392,11 @@ fi
 # 5. Dashboard & Admin Panel Patching
 
 # Sanitize variables for sed
-SAFE_API_KEY=$(printf "%s" "$API_KEY" | sed 's/[&/\]/\\&/g')
-SAFE_MASTER_IP=$(printf "%s" "$MASTER_IP" | sed 's/[&/\]/\\&/g')
-SAFE_MASTER_DOMAIN=$(printf "%s" "$MASTER_DOMAIN" | sed 's/[&/\]/\\&/g')
-SAFE_FIREBASE_BASE_URL=$(printf "%s" "$FIREBASE_BASE_URL" | sed 's/[&/\]/\\&/g')
-SAFE_ADMIN_PANEL_PASSWORD=$(printf "%s" "$ADMIN_PANEL_PASSWORD" | awk '{gsub(/["\\]/,"\\\\&")}1' | sed 's/[&/\]/\\&/g')
+SAFE_API_KEY=$(printf "%s" "$API_KEY" | sed 's/[&/\\]/\\&/g')
+SAFE_MASTER_IP=$(printf "%s" "$MASTER_IP" | sed 's/[&/\\]/\\&/g')
+SAFE_MASTER_DOMAIN=$(printf "%s" "$MASTER_DOMAIN" | sed 's/[&/\\]/\\&/g')
+SAFE_FIREBASE_BASE_URL=$(printf "%s" "$FIREBASE_BASE_URL" | sed 's/[&/\\]/\\&/g')
+SAFE_ADMIN_PANEL_PASSWORD=$(printf "%s" "$ADMIN_PANEL_PASSWORD" | awk '{gsub(/["\\]/,"\\\\&")}1' | sed 's/[&/\\]/\\&/g')
 
 sed -i "s/%%DASHBOARD_API_KEY%%/${SAFE_API_KEY}/g" /etc/headscale/dashboard.html
 sed -i "s/%%MASTER_IP%%/${SAFE_MASTER_IP}/g" /etc/headscale/dashboard.html
@@ -457,10 +457,12 @@ audit_log "GATEWAY_BOOT" "HAProxy Edge Gateway iniciado con ruteo dinámico de d
         [ -z "$COUNT_NUM" ] && COUNT_NUM=0
 
         # Validar conexión de BD para el healthcheck de telemetría, registramos caída silenciosa si falla
-        if timeout 2 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" --silent; then
-            mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" -e "INSERT INTO network_stats (node_count, active_connections, cluster_health_score) VALUES ($COUNT_NUM, $COUNT_NUM, 100);" || true
-        else
-            echo "[$(date -u)] SECURITY_AUDIT - EVENT: TELEMETRY_FAILURE - Base de datos inalcanzable durante volcado de métricas" >> /var/log/headscale_security_audit.log
+        if [ -n "$DB_HOST" ]; then
+            if timeout 2 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" --silent; then
+                mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" -e "INSERT INTO network_stats (node_count, active_connections, cluster_health_score) VALUES ($COUNT_NUM, $COUNT_NUM, 100);" || true
+            else
+                echo "[$(date -u)] SECURITY_AUDIT - EVENT: TELEMETRY_FAILURE - Base de datos inalcanzable durante volcado de métricas" >> /var/log/headscale_security_audit.log
+            fi
         fi
 
         FB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${FIREBASE_BASE_URL}/.json?shallow=true" 2>/dev/null)

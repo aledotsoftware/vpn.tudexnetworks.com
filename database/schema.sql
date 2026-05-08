@@ -54,6 +54,7 @@ CREATE INDEX idx_security_audit_created_at ON security_audit(created_at);
 CREATE INDEX idx_security_audit_ip_source ON security_audit(ip_source);
 CREATE INDEX idx_security_audit_severity ON security_audit(severity);
 CREATE INDEX idx_network_stats_snapshot_time ON network_stats(snapshot_time);
+CREATE INDEX idx_network_stats_cluster_health_score ON network_stats(cluster_health_score);
 
 -- DATOS INICIALES DE EJEMPLO PARA EL DASHBOARD
 INSERT IGNORE INTO cluster_config (config_key, config_value, is_critical) 

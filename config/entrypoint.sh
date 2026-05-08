@@ -154,6 +154,7 @@ sync_domain_mappings() {
 trap 'echo "🛑 Recibido SIGTERM/SIGINT. Saliendo..."; audit_log "GATEWAY_SHUTDOWN" "Gateway detenido exitosamente" "WARN" "$MASTER_IP" 2>/dev/null || true; kill $(jobs -p) 2>/dev/null; exit 0' TERM INT
 
 echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V23 - FIREBASE + DYNAMIC ROUTING)"
+audit_log "SYSTEM_BOOT" "Secuencia de arranque iniciada"
 
 # 0. Limpieza de procesos huérfanos (previene crash loops)
 echo "🧹 [INIT] Limpiando procesos anteriores..."

@@ -4,6 +4,8 @@ services:
     build: .
     container_name: tudex_headscale
     restart: always
+    security_opt:
+      - no-new-privileges:true
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -20,10 +22,6 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_USER=${DB_USER}
       - DB_NAME=${DB_NAME}
-      - DB_PASS=${DB_PASS}
-      - HEADSCALE_PRIVATE_KEY=${HEADSCALE_PRIVATE_KEY}
-      - HEADSCALE_NOISE_PRIVATE_KEY=${HEADSCALE_NOISE_PRIVATE_KEY}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - VPN_IP_PREFIX=${VPN_IP_PREFIX:-100.64.0.0/10}
       - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN:-vpn.internal}
       - VPN_SERVER_URL=${VPN_SERVER_URL:-http://headscale:8080}
@@ -37,6 +35,11 @@ services:
       - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
       - headscale_data:/var/lib/headscale
       - headscale_run:/var/run/headscale
+    secrets:
+      - headscale_private_key
+      - headscale_noise_private_key
+      - admin_password
+      - db_pass
     networks:
       - tudex_mesh_net
 
@@ -45,6 +48,8 @@ services:
     build: ./satellite
     container_name: node_01
     restart: always
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       headscale:
         condition: service_started
@@ -65,6 +70,8 @@ services:
     build: ./satellite
     container_name: node_02
     restart: always
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       headscale:
         condition: service_started
@@ -87,3 +94,13 @@ networks:
 volumes:
   headscale_data:
   headscale_run:
+
+secrets:
+  headscale_private_key:
+    environment: "HEADSCALE_PRIVATE_KEY"
+  headscale_noise_private_key:
+    environment: "HEADSCALE_NOISE_PRIVATE_KEY"
+  admin_password:
+    environment: "ADMIN_PASSWORD"
+  db_pass:
+    environment: "DB_PASS"

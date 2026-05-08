@@ -472,6 +472,8 @@ audit_log "GATEWAY_BOOT" "HAProxy Edge Gateway iniciado con ruteo dinámico de d
             [ -z "$COUNT_NUM" ] && COUNT_NUM=0
             TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
             firebase_post "network_stats" "{\"node_count\":${COUNT_NUM},\"active_connections\":${COUNT_NUM},\"cluster_health_score\":100,\"snapshot_time\":\"${TIMESTAMP}\"}"
+        else
+            echo "[$(date -u)] SECURITY_AUDIT - EVENT: TELEMETRY_FAILURE - Firebase REST API inalcanzable durante volcado de métricas" >> /var/log/headscale_security_audit.log
         fi
         sleep 60
     done

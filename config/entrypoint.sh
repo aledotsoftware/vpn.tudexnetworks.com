@@ -458,7 +458,7 @@ audit_log "GATEWAY_BOOT" "HAProxy Edge Gateway iniciado con ruteo dinámico de d
         [ -z "$COUNT_NUM" ] && COUNT_NUM=0
 
         # Validar conexión de BD para el healthcheck de telemetría, registramos caída silenciosa si falla
-        if [ -n "$DB_HOST" ]; then
+        if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
             if timeout 2 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" --silent; then
                 mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" -e "INSERT INTO network_stats (node_count, active_connections, cluster_health_score) VALUES ($COUNT_NUM, $COUNT_NUM, 100);" || true
             else

@@ -9,6 +9,7 @@
   
   "groups": {
     "group:admin": ["tudex"],
+    "group:security": ["tudex"],
     "group:cdn": ["tudex"],
     "group:monitoring": ["tudex"]
   },
@@ -30,7 +31,7 @@
     // Nota: Se prohíbe el uso de *:0 para ICMP para prevenir caídas de control plane, usando puertos explícitos en su lugar.
     {
       "action": "accept",
-      "src": ["group:admin"],
+      "src": ["group:admin", "group:security"],
       "dst": ["core-mesh:80", "cdn-mesh:80", "core-mesh:443", "cdn-mesh:443", "core-mesh:8080", "core-mesh:8404", "core-mesh:9090", "core-mesh:41641", "cdn-mesh:41641"]
     },
     // [SECURITY GATEWAY] Regla ICMP Restringida y Segmentada (Least Privilege)
@@ -40,7 +41,7 @@
     // Dado que ICMP no usa puertos, se restringe a las direcciones específicas de la red.
     {
       "action": "accept",
-      "src": ["group:admin", "group:monitoring"],
+      "src": ["group:admin", "group:monitoring", "group:security"],
       "proto": "icmp",
       "dst": ["core-mesh", "cdn-mesh"]
     },
@@ -78,7 +79,7 @@
     // Toda red fuera del grupo admin, cdn y monitoring está denegada nativamente.
     {
       "action": "accept",
-      "src": ["group:admin"],
+      "src": ["group:admin", "group:security"],
       "proto": "tcp",
       "dst": ["core-mesh:22", "cdn-mesh:22"]
     }
@@ -91,7 +92,7 @@
     // Nota: Esto también requiere que el host de destino tenga habilitado Tailscale SSH.
     {
       "action": "accept",
-      "src": ["group:admin"],
+      "src": ["group:admin", "group:security"],
       "dst": ["core-mesh", "cdn-mesh"],
       "users": ["root", "admin"]
     }

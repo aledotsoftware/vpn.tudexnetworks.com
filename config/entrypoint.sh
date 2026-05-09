@@ -154,7 +154,6 @@ sync_domain_mappings() {
 trap 'echo "🛑 Recibido SIGTERM/SIGINT. Saliendo..."; audit_log "GATEWAY_SHUTDOWN" "Gateway detenido exitosamente" "WARN" "$MASTER_IP" 2>/dev/null || true; kill $(jobs -p) 2>/dev/null; exit 0' TERM INT
 
 echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V23 - FIREBASE + DYNAMIC ROUTING)"
-audit_log "SYSTEM_BOOT" "Secuencia de arranque iniciada"
 
 # 0. Limpieza de procesos huérfanos (previene crash loops)
 echo "🧹 [INIT] Limpiando procesos anteriores..."
@@ -244,6 +243,7 @@ if [ "$EXISTING" = "null" ] || [ -z "$EXISTING" ]; then
     firebase_put "cluster_config/cluster_name" '{"config_value":"Tudex Global Mesh","is_critical":true}'
 fi
 
+audit_log "SYSTEM_BOOT" "Secuencia de arranque iniciada"
 audit_log "DB_CONNECTED" "Conexión a Firebase Realtime Database establecida exitosamente"
 audit_log "TUN_INITIALIZED" "Interfaz de túnel VPN asegurada e inicializada"
 audit_log "SECRETS_LOADED" "Credenciales cacheadas de manera aislada (Entorno / Secrets)"

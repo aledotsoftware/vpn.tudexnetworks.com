@@ -57,6 +57,7 @@ CREATE INDEX idx_network_stats_snapshot_time ON network_stats(snapshot_time);
 CREATE INDEX idx_network_stats_cluster_health_score ON network_stats(cluster_health_score);
 CREATE INDEX idx_cluster_config_is_critical ON cluster_config(is_critical);
 CREATE INDEX idx_network_stats_node_count ON network_stats(node_count);
+CREATE INDEX idx_headscale_secrets_updated_at ON headscale_secrets(updated_at);
 
 -- DATOS INICIALES DE EJEMPLO PARA EL DASHBOARD
 INSERT IGNORE INTO cluster_config (config_key, config_value, is_critical) 

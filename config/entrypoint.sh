@@ -424,7 +424,7 @@ fi
 
 echo "⚖️ [EDGE] Iniciando HAProxy Gateway..."
 haproxy -f /tmp/haproxy-active.cfg -D -p /var/run/haproxy.pid
-audit_log "GATEWAY_BOOT" "HAProxy Edge Gateway iniciado con ruteo dinámico de dominios"
+audit_log "GATEWAY_BOOT" "HAProxy Edge Gateway iniciado con ruteo dinámico de dominios y mitigaciones DoS activas"
 
 # 7. Conexión Mesh en Background
 (
@@ -491,6 +491,7 @@ echo "🌐 TUDEX MESH: INFRAESTRUCTURA OPERATIVA"
             OLD_PID=$(cat /var/run/haproxy.pid 2>/dev/null || true)
             if [ -n "$OLD_PID" ]; then
                 haproxy -f /tmp/haproxy-active.cfg -D -p /var/run/haproxy.pid -sf "$OLD_PID" 2>/dev/null
+                audit_log "HAPROXY_RELOAD" "HAProxy recargado dinámicamente tras sincronización de dominios" "INFO" "$MASTER_IP" 2>/dev/null || true
             else
                 haproxy -f /tmp/haproxy-active.cfg -D -p /var/run/haproxy.pid 2>/dev/null
             fi

@@ -62,7 +62,7 @@
     // previniendo acceso lateral no autorizado de acuerdo con el Principio de Menor Privilegio.
     {
       "action": "accept",
-      "src": ["group:monitoring"],
+      "src": ["group:monitoring", "group:security"],
       "dst": ["core-mesh:9090", "core-mesh:9100", "core-mesh:8404", "cdn-mesh:9100"]
     },
     // [SECURITY GATEWAY] DNS Interno (MagicDNS).

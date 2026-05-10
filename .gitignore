@@ -10,3 +10,4 @@ headscale_run/
 .DS_Store
 Thumbs.db
 node_modules/
+secrets/*

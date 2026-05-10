@@ -39,10 +39,10 @@ volumes:
 
 secrets:
   headscale_private_key:
-    environment: "HEADSCALE_PRIVATE_KEY"
+    file: ./secrets/headscale_private_key.txt
   headscale_noise_private_key:
-    environment: "HEADSCALE_NOISE_PRIVATE_KEY"
+    file: ./secrets/headscale_noise_private_key.txt
   admin_password:
-    environment: "ADMIN_PASSWORD"
+    file: ./secrets/admin_password.txt
   db_pass:
-    environment: "DB_PASS"
+    file: ./secrets/db_pass.txt

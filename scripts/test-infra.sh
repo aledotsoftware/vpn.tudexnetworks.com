@@ -54,6 +54,7 @@ fi
 
 # 4. Docker Compose config
 echo "🐳 [TEST] Validando Docker Compose..."
+export DB_TYPE="dummy" FIREBASE_DB_URL="dummy" FIREBASE_PROJECT_ID="dummy" FIREBASE_API_KEY="dummy" DB_HOST="dummy" DB_USER="dummy" DB_NAME="dummy" TS_AUTHKEY="dummy" VPN_IP_PREFIX_ALFA="dummy" VPN_IP_PREFIX_BETA="dummy" VPN_BASE_DOMAIN="dummy"
 if docker compose config -q; then
     echo "✅ [TEST] Docker Compose válido."
 else

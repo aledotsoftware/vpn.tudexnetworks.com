@@ -1,0 +1,7 @@
+HTTP/1.0 406 Not Acceptable
+Cache-Control: no-cache
+Connection: close
+Content-Type: text/html
+Server: Gateway
+
+<html><body><h1>406 Not Acceptable</h1><p>The server could not comply with the request since the resource is in a format not acceptable according to the Accept headers sent in the request.</p></body></html>

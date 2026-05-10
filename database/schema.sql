@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS headscale_secrets (
     key_name VARCHAR(64) PRIMARY KEY, -- 'private_key', 'noise_private_key', 'api_key'
     key_content TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL, -- Binary collation prevents case-folding corruption of secrets
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    description VARCHAR(255)
+    description VARCHAR(255),
+    updated_by VARCHAR(64) DEFAULT 'system'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Mantenimiento de integridad: previene inserciones con nombres de clave vacíos
@@ -46,6 +47,7 @@ CREATE TABLE IF NOT EXISTS security_audit (
     description TEXT,
     ip_source VARCHAR(45),
     detailed_audit BOOLEAN DEFAULT FALSE,
+    is_alert BOOLEAN DEFAULT FALSE,
     resolved BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

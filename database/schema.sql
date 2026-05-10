@@ -62,6 +62,7 @@ CREATE INDEX idx_security_audit_severity ON security_audit(severity);
 CREATE INDEX idx_security_audit_resolved ON security_audit(resolved);
 CREATE INDEX idx_security_audit_is_alert ON security_audit(is_alert);
 CREATE INDEX idx_security_audit_range ON security_audit(created_at, severity);
+CREATE INDEX idx_security_audit_resolved_alert ON security_audit(resolved, is_alert);
 CREATE INDEX idx_network_stats_snapshot_time ON network_stats(snapshot_time);
 CREATE INDEX idx_network_stats_cluster_health_score ON network_stats(cluster_health_score);
 CREATE INDEX idx_cluster_config_is_critical ON cluster_config(is_critical);

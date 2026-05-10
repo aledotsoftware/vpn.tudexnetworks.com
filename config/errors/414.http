@@ -1,0 +1,7 @@
+HTTP/1.0 414 URI Too Long
+Cache-Control: no-cache
+Connection: close
+Content-Type: text/html
+Server: Gateway
+
+<html><body><h1>414 URI Too Long</h1><p>The URI provided was too long for the server to process.</p></body></html>

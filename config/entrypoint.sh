@@ -210,6 +210,12 @@ MYSQL_PWD=$(get_secret "/run/secrets/db_pass" "DB_PASS")
 # shellcheck disable=SC2031
 export MYSQL_PWD
 
+if [ -z "$MYSQL_PWD" ]; then
+    MYSQL_PWD=$(head -c 16 /dev/urandom | xxd -p -c 16)
+    export MYSQL_PWD
+    echo "⚠️ [AUTH] Fallback a contraseña auto-generada para base de datos."
+fi
+
 ADMIN_PANEL_PASSWORD=$(get_secret "/run/secrets/admin_password" "ADMIN_PASSWORD")
 if [ -z "$ADMIN_PANEL_PASSWORD" ]; then
     # Fallback securely generate a random password

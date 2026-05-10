@@ -1,0 +1,7 @@
+HTTP/1.0 501 Not Implemented
+Cache-Control: no-cache
+Connection: close
+Content-Type: text/html
+Server: Gateway
+
+<html><body><h1>501 Not Implemented</h1><p>The server does not support the functionality required to fulfill the request.</p></body></html>

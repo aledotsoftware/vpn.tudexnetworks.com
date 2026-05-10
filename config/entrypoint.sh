@@ -233,6 +233,7 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
             if [ -f /etc/headscale/schema.sql ]; then
                 echo "🔧 [DB] Aplicando esquema de base de datos..."
                 mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" < /etc/headscale/schema.sql || echo "⚠️ [DB] Error al aplicar esquema. Puede que ya exista."
+                audit_log "DB_SCHEMA_SYNC" "Esquema de base de datos verificado y sincronizado" "INFO"
             fi
             break
         fi

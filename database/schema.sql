@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS headscale_secrets (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     description VARCHAR(255),
     updated_by VARCHAR(64) DEFAULT 'system'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- Mantenimiento de integridad: previene inserciones con nombres de clave vacíos
 ALTER TABLE headscale_secrets ADD CONSTRAINT check_key_name_not_empty CHECK (key_name <> '');

@@ -18,7 +18,6 @@ services:
       - DB_TYPE=${DB_TYPE}
       - FIREBASE_DB_URL=${FIREBASE_DB_URL}
       - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
-      - FIREBASE_API_KEY=${FIREBASE_API_KEY}
       - DB_HOST=${DB_HOST}
       - DB_USER=${DB_USER}
       - DB_NAME=${DB_NAME}
@@ -40,6 +39,7 @@ services:
       - headscale_noise_private_key
       - admin_password
       - db_pass
+      - firebase_api_key
     networks:
       - tudex_mesh_net
 
@@ -110,3 +110,5 @@ secrets:
     file: ./secrets/db_pass.txt
   ts_authkey:
     file: ./secrets/ts_authkey.txt
+  firebase_api_key:
+    file: ./secrets/firebase_api_key.txt

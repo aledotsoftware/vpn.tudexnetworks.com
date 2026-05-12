@@ -75,6 +75,7 @@ CREATE INDEX idx_headscale_secrets_updated_by ON headscale_secrets(updated_by);
 CREATE INDEX idx_network_stats_active_connections ON network_stats(active_connections);
 CREATE INDEX idx_network_stats_traffic_in_gb ON network_stats(traffic_in_gb);
 CREATE INDEX idx_network_stats_traffic_out_gb ON network_stats(traffic_out_gb);
+CREATE INDEX idx_network_stats_time_health ON network_stats(snapshot_time, cluster_health_score);
 
 -- DATOS INICIALES DE EJEMPLO PARA EL DASHBOARD
 INSERT IGNORE INTO cluster_config (config_key, config_value, is_critical) 

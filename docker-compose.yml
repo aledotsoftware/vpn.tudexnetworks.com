@@ -61,7 +61,9 @@ services:
     environment:
       - NODE_NAME=node-01
       - VPN_SERVER_URL=${VPN_SERVER_URL:-http://headscale:8080}
-      - VPN_AUTH_KEY=${TS_AUTHKEY}
+      - VPN_AUTH_KEY_FILE=/run/secrets/ts_authkey
+    secrets:
+      - ts_authkey
     networks:
       - tudex_mesh_net
 
@@ -83,7 +85,9 @@ services:
     environment:
       - NODE_NAME=node-02
       - VPN_SERVER_URL=${VPN_SERVER_URL:-http://headscale:8080}
-      - VPN_AUTH_KEY=${TS_AUTHKEY}
+      - VPN_AUTH_KEY_FILE=/run/secrets/ts_authkey
+    secrets:
+      - ts_authkey
     networks:
       - tudex_mesh_net
 
@@ -104,3 +108,5 @@ secrets:
     file: ./secrets/admin_password.txt
   db_pass:
     file: ./secrets/db_pass.txt
+  ts_authkey:
+    file: ./secrets/ts_authkey.txt

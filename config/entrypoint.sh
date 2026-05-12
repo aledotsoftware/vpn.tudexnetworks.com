@@ -81,6 +81,21 @@ audit_log() {
     fi
 }
 
+MYSQL_PWD=$(get_secret "/run/secrets/db_pass" "DB_PASS")
+# shellcheck disable=SC2030
+# shellcheck disable=SC2031
+export MYSQL_PWD
+if [ -z "$MYSQL_PWD" ]; then
+    MYSQL_PWD=$(head -c 16 /dev/urandom | xxd -p -c 16)
+    export MYSQL_PWD
+    echo "⚠️ [AUTH] Fallback a contraseña auto-generada para base de datos."
+fi
+ADMIN_PANEL_PASSWORD=$(get_secret "/run/secrets/admin_password" "ADMIN_PASSWORD")
+if [ -z "$ADMIN_PANEL_PASSWORD" ]; then
+    ADMIN_PANEL_PASSWORD=$(head -c 16 /dev/urandom | xxd -p -c 16)
+    echo "⚠️ [AUTH] Fallback a contraseña auto-generada para panel de administración: No se proveyó ADMIN_PASSWORD."
+fi
+
 # --- DOMAIN SYNC FUNCTION ---
 # Lee domain_mappings de Firebase, genera domain-map.txt y backends dinámicos,
 # y recarga HAProxy si hay cambios.
@@ -205,23 +220,6 @@ MASTER_IP=$(ip -4 addr show eth0 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{
 [ -z "$MASTER_IP" ] && MASTER_IP=$(hostname -i | awk '{print $1}')
 MASTER_DOMAIN=$(grep "server_url:" /etc/headscale/config.yaml | awk '{print $2}' | sed 's|https://||' | sed 's|http://||' | sed 's|:.*||')
 
-MYSQL_PWD=$(get_secret "/run/secrets/db_pass" "DB_PASS")
-# shellcheck disable=SC2030
-# shellcheck disable=SC2031
-export MYSQL_PWD
-
-if [ -z "$MYSQL_PWD" ]; then
-    MYSQL_PWD=$(head -c 16 /dev/urandom | xxd -p -c 16)
-    export MYSQL_PWD
-    echo "⚠️ [AUTH] Fallback a contraseña auto-generada para base de datos."
-fi
-
-ADMIN_PANEL_PASSWORD=$(get_secret "/run/secrets/admin_password" "ADMIN_PASSWORD")
-if [ -z "$ADMIN_PANEL_PASSWORD" ]; then
-    # Fallback securely generate a random password
-    ADMIN_PANEL_PASSWORD=$(head -c 16 /dev/urandom | xxd -p -c 16)
-    echo "⚠️ [AUTH] Fallback a contraseña auto-generada para panel de administración: No se proveyó ADMIN_PASSWORD."
-fi
 
 # Conexión MariaDB con Exponential Backoff
 if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then

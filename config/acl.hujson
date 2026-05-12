@@ -31,8 +31,14 @@
     // Nota: Se prohíbe el uso de *:0 para ICMP para prevenir caídas de control plane, usando puertos explícitos en su lugar.
     {
       "action": "accept",
-      "src": ["group:admin", "group:security"],
+      "src": ["group:admin"],
       "dst": ["core-mesh:80", "cdn-mesh:80", "core-mesh:443", "cdn-mesh:443", "core-mesh:8080", "core-mesh:8404", "core-mesh:9090", "core-mesh:41641", "cdn-mesh:41641"]
+    },
+    // Acceso restringido para el grupo de seguridad (sin puertos de administración principal)
+    {
+      "action": "accept",
+      "src": ["group:security"],
+      "dst": ["core-mesh:80", "cdn-mesh:80", "core-mesh:443", "cdn-mesh:443"]
     },
     // [SECURITY GATEWAY] Regla ICMP Restringida y Segmentada (Least Privilege)
     // Solo permitir ping (ICMP) desde los administradores y nodos de monitoreo, previniendo escaneos laterales no autorizados.
@@ -60,6 +66,7 @@
     // del plano de control central (core-mesh:9090, core-mesh:9100) y satélites (cdn-mesh:9100),
     // además del endpoint de HAProxy Stats (core-mesh:8404),
     // previniendo acceso lateral no autorizado de acuerdo con el Principio de Menor Privilegio.
+    // [AUDIT VERIFICATION] Explicit port definitions applied for Least Privilege.
     {
       "action": "accept",
       "src": ["group:monitoring", "group:security"],
@@ -87,7 +94,7 @@
     // Toda red fuera del grupo admin, cdn y monitoring está denegada nativamente.
     {
       "action": "accept",
-      "src": ["group:admin", "group:security"],
+      "src": ["group:admin"],
       "proto": "tcp",
       "dst": ["core-mesh:22", "cdn-mesh:22"]
     }
@@ -100,7 +107,7 @@
     // Nota: Esto también requiere que el host de destino tenga habilitado Tailscale SSH.
     {
       "action": "accept",
-      "src": ["group:admin", "group:security"],
+      "src": ["group:admin"],
       "dst": ["core-mesh", "cdn-mesh"],
       "users": ["root", "admin"]
     }

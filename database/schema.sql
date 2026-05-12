@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS network_stats (
     traffic_out_gb BIGINT DEFAULT 0,
     cluster_health_score TINYINT DEFAULT 100,
     snapshot_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- 3. Configuración Dinámica de la Malla
 -- Parámetros que los Gateways leen al arrancar.
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS cluster_config (
     config_key VARCHAR(64) PRIMARY KEY,
     config_value TEXT,
     is_critical BOOLEAN DEFAULT FALSE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- 4. Audit Log de Seguridad
 -- Registro de altas/bajas de nodos y generaciones de claves.
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS security_audit (
     is_alert BOOLEAN DEFAULT FALSE,
     resolved BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- Índices para optimizar la monitorización y búsqueda de eventos de seguridad por tipo o fecha
 CREATE INDEX idx_security_audit_event_type ON security_audit(event_type);

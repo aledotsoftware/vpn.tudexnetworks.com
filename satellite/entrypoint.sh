@@ -23,6 +23,11 @@ APACHE_PID=$!
 # 3. Tailscale Join (Background Loop)
 echo "📡 [MESH] Iniciando bucle de unión a la malla..."
 (
+    # Fallback for secrets mapping
+    if [ -n "$VPN_AUTH_KEY_FILE" ] && [ -f "$VPN_AUTH_KEY_FILE" ]; then
+        VPN_AUTH_KEY=$(cat "$VPN_AUTH_KEY_FILE" | tr -d '\n\r')
+    fi
+
     while true; do
         if tailscale --socket=/var/run/tailscale/tailscaled.sock up --login-server "$VPN_SERVER_URL" --authkey "$VPN_AUTH_KEY" --hostname "$NODE_NAME" --accept-routes --accept-dns=false; then
             echo "✅ [MESH] Link established."

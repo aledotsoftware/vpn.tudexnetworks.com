@@ -565,18 +565,29 @@
         async function updateData() {
             try {
                 // ⚡ Bolt: Fetch Headscale Nodes, Keys and HAProxy Stats concurrently to reduce latency
-                const [hsRes, pxRes, keysRes] = await Promise.all([
+                const responses = await Promise.allSettled([
                     fetch('/api/v1/machine', { headers: { 'Authorization': `Bearer ${API_KEY}` } }),
                     fetch('/stats/json'),
                     fetch('/api/v1/preauthkey', { headers: { 'Authorization': `Bearer ${API_KEY}` } })
                 ]);
 
-                // Parse both JSON responses concurrently
-                const [hsData, pxData, keysData] = await Promise.all([
-                    hsRes.json(),
-                    pxRes.json(),
-                    keysRes.json()
+                const safeJson = async (resResult) => {
+                    if (resResult.status === 'fulfilled' && resResult.value && resResult.value.ok) {
+                        try { return await resResult.value.json(); } catch(e) { return null; }
+                    }
+                    return null;
+                };
+
+                // Parse JSON responses concurrently safely
+                const dataResults = await Promise.allSettled([
+                    safeJson(responses[0]),
+                    safeJson(responses[1]),
+                    safeJson(responses[2])
                 ]);
+
+                const hsData = dataResults[0].status === 'fulfilled' && dataResults[0].value ? dataResults[0].value : {};
+                const pxData = dataResults[1].status === 'fulfilled' && dataResults[1].value ? dataResults[1].value : [];
+                const keysData = dataResults[2].status === 'fulfilled' && dataResults[2].value ? dataResults[2].value : {};
 
                 // 1. Process Headscale Nodes
                 const machines = hsData.machines || [];
@@ -625,7 +636,7 @@
                 }, {});
 
                 // 1.b Process PreAuthKeys
-                const keys = keysRes.status === 200 ? (keysData.preAuthKeys || []) : [];
+                const keys = keysData.preAuthKeys || [];
                 const newKeyHtml = keys.map(k => {
                     const keyFrag = k.key.substring(0, 12) + "...";
                     const exp = new Date(k.expiration).toLocaleDateString();

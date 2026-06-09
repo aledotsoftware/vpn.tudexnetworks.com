@@ -258,6 +258,7 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
     if [ "$DB_READY" = "false" ]; then
         echo "❌ [DB] Error crítico: No se pudo conectar a MariaDB después de $MAX_RETRIES intentos."
         echo "[$(date -u)] SECURITY_AUDIT - EVENT: DB_ERROR - Fallo en inicialización de conexión a MariaDB" >> /var/log/headscale_security_audit.log
+        exit 1
     fi
 fi
 
@@ -361,7 +362,7 @@ done
 if [ $HS_RETRIES -eq $HS_MAX_RETRIES ]; then
   echo "⚠️ [CORE] Headscale no respondió en 30s. Log de error:"
   tail -n 20 /var/log/headscale.log 2>/dev/null || true
-  echo "⚠️ [CORE] Continuando de todas formas..."
+  exit 1
 fi
 
 # 4. Aprovisionamiento de Claves

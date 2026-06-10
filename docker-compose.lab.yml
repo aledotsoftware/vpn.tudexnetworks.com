@@ -1,7 +1,8 @@
 services:
   # --- GATEWAY ALFA (Conectado a Firebase) ---
   gateway-alfa:
-    build: .
+    build:
+      context: .
     container_name: gateway_alfa
     security_opt:
       - no-new-privileges:true
@@ -37,7 +38,8 @@ services:
 
   # --- GATEWAY BETA (HA Mirror - Firebase) ---
   gateway-beta:
-    build: .
+    build:
+      context: .
     container_name: gateway_beta
     security_opt:
       - no-new-privileges:true
@@ -73,7 +75,8 @@ services:
 
   # --- NODO SATÉLITE 1 ---
   node-01:
-    build: ../now.tudexnetworks.com
+    build:
+      context: ../now.tudexnetworks.com
     container_name: node_01
     security_opt:
       - no-new-privileges:true
@@ -95,7 +98,8 @@ services:
 
   # --- NODO SATÉLITE 2 ---
   node-02:
-    build: ../now.tudexnetworks.com
+    build:
+      context: ../now.tudexnetworks.com
     container_name: node_02
     security_opt:
       - no-new-privileges:true

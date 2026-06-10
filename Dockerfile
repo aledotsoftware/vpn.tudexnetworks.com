@@ -31,17 +31,15 @@ RUN apk add --no-cache \
 
 # Copiamos el binario compilado/descargado desde la fase builder
 COPY --from=builder /bin/headscale /bin/headscale
-# Copiamos configuraciones
-COPY ./config/entrypoint.sh /entrypoint.sh
-RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
+# Copiamos configuraciones (agrupadas para optimizar capas)
 COPY ./config/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
-COPY ./config/config.yaml /etc/headscale/config.yaml
-COPY ./config/dashboard.html /etc/headscale/dashboard.html
-COPY ./config/admin-panel.html /etc/headscale/admin-panel.html
-COPY ./config/acl.hujson /etc/headscale/acl.hujson
-COPY ./config/domain-map.txt /etc/headscale/domain-map.txt
+COPY ./config/config.yaml ./config/dashboard.html ./config/admin-panel.html ./config/acl.hujson ./config/domain-map.txt /etc/headscale/
 COPY ./config/errors /etc/headscale/errors
 COPY ./database/schema.sql /etc/headscale/schema.sql
+
+# Configuración del entrypoint
+COPY ./config/entrypoint.sh /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 # Puertos
 EXPOSE 80 443 8080 9090 8404

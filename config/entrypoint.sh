@@ -322,28 +322,12 @@ echo "🔧 [CORE] Iniciando Headscale..."
 headscale serve -c /etc/headscale/config.yaml > /var/log/headscale.log 2>&1 &
 HS_PID=$!
 
-echo "⏳ [HS] Esperando inicialización del Control Plane (Headscale)..."
-HS_READY=false
-for i in $(seq 1 30); do
-    if curl -s --max-time 2 http://localhost:9090/metrics > /dev/null; then
-        HS_READY=true
-        break
-    fi
-    echo "⏳ [HS] Reintento $i/30..."
-    sleep 2
-done
-
-if [ "$HS_READY" = "false" ]; then
-    echo "❌ [HS] Error crítico: Headscale no respondió después de 60 segundos."
-    audit_log "HS_ERROR" "Fallo crítico en la inicialización de Headscale" "CRITICAL"
-    echo "⚠️ Mostrando últimos logs de Headscale:"
-    tail -n 20 /var/log/headscale.log || true
-    exit 1
-fi
-echo "✅ [HS] Control Plane inicializado correctamente."
 echo "⏳ [CORE] Esperando inicialización de Headscale (hasta 30s)..."
 HS_RETRIES=0
 HS_MAX_RETRIES=30
+HS_READY=false
+DELAY=1
+
 while [ $HS_RETRIES -lt $HS_MAX_RETRIES ]; do
   # Verificar que el proceso sigue vivo
   if ! kill -0 $HS_PID 2>/dev/null; then
@@ -353,15 +337,22 @@ while [ $HS_RETRIES -lt $HS_MAX_RETRIES ]; do
     headscale serve -c /etc/headscale/config.yaml > /var/log/headscale.log 2>&1 &
     HS_PID=$!
   fi
-  if curl -s http://localhost:9090/metrics > /dev/null 2>&1; then
-    echo "✅ [CORE] Headscale operativo."
+
+  if curl -s --max-time 2 http://localhost:9090/metrics > /dev/null 2>&1; then
+    HS_READY=true
+    echo "✅ [CORE] Headscale operativo y Control Plane inicializado correctamente."
     break
   fi
-  HS_RETRIES=$((HS_RETRIES + 1))
-  sleep 1
+
+  HS_RETRIES=$((HS_RETRIES + 1)); DELAY=$((DELAY * 2))
+  echo "⏳ [CORE] Reintento $HS_RETRIES/$HS_MAX_RETRIES..."
+  sleep "$DELAY"
 done
-if [ $HS_RETRIES -eq $HS_MAX_RETRIES ]; then
-  echo "⚠️ [CORE] Headscale no respondió en 30s. Log de error:"
+
+if [ "$HS_READY" = "false" ]; then
+  echo "❌ [CORE] Error crítico: Headscale no respondió en $((HS_MAX_RETRIES * 2))s."
+  audit_log "HS_ERROR" "Fallo crítico en la inicialización de Headscale" "CRITICAL"
+  echo "⚠️ Mostrando últimos logs de Headscale:"
   tail -n 20 /var/log/headscale.log 2>/dev/null || true
   exit 1
 fi

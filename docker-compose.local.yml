@@ -1,7 +1,8 @@
 services:
   # Gateway (Tu contenedor) - Conectado a Firebase (sin DB local)
   gateway:
-    build: .
+    build:
+      context: .
     container_name: vpn_gateway_local
     security_opt:
       - no-new-privileges:true

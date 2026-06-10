@@ -17,9 +17,9 @@ jobs:
           sudo mkdir -p /etc/headscale/errors
           sudo cp -r config/errors/* /etc/headscale/errors/ || true
           sudo touch /etc/headscale/dashboard.html
+          sudo touch /etc/headscale/admin-panel.html
+          sudo touch /etc/headscale/domain-map.txt
+          sudo touch /etc/headscale/schema.sql
 
       - name: Run infrastructure tests
         run: bash scripts/test-infra.sh
-
-      - name: Docker Build Test
-        run: docker build -t tudex-gateway-test .

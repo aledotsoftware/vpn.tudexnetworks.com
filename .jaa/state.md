@@ -6,3 +6,4 @@ DevOps Mesh Orchestrator Agent: HAProxy string header comparison fixed (req.hdr_
 DevOps Mesh Orchestrator Agent: Added missing idx_security_audit_ip_resolved index to schema.sql
 DevOps Mesh Orchestrator Agent: Implemented strict exit on initialization failures for headscale and MariaDB in entrypoint.sh
 DevOps Mesh Orchestrator Agent: Optimized Dockerfile structure and corrected HAProxy configuration rules.
+Added security refinements to all components.

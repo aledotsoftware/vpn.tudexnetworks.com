@@ -84,3 +84,4 @@ VALUES ('cluster_name', 'Tudex Global Mesh', TRUE);
 CREATE INDEX idx_security_audit_ip_severity ON security_audit(ip_source, severity);
 CREATE INDEX idx_security_audit_resolved_created_at ON security_audit(resolved, created_at);
 CREATE INDEX idx_security_audit_ip_resolved ON security_audit(ip_source, resolved);
+CREATE INDEX idx_security_audit_resolved_severity ON security_audit(resolved, severity);

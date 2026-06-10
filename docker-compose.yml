@@ -35,7 +35,7 @@ services:
       - headscale_data:/var/lib/headscale
       - headscale_run:/var/run/headscale
     secrets:
-    # Segregated and hardened via Docker Secrets
+      # Segregated and hardened via Docker Secrets
       - headscale_private_key
       - headscale_noise_private_key
       - admin_password
@@ -64,7 +64,7 @@ services:
       - VPN_SERVER_URL=${VPN_SERVER_URL:-http://headscale:8080}
       - VPN_AUTH_KEY_FILE=/run/secrets/ts_authkey
     secrets:
-    # Segregated and hardened via Docker Secrets
+      # Segregated and hardened via Docker Secrets
       - ts_authkey
     networks:
       - tudex_mesh_net
@@ -89,7 +89,7 @@ services:
       - VPN_SERVER_URL=${VPN_SERVER_URL:-http://headscale:8080}
       - VPN_AUTH_KEY_FILE=/run/secrets/ts_authkey
     secrets:
-    # Segregated and hardened via Docker Secrets
+      # Segregated and hardened via Docker Secrets
       - ts_authkey
     networks:
       - tudex_mesh_net
@@ -103,7 +103,7 @@ volumes:
   headscale_run:
 
 secrets:
-    # Segregated and hardened via Docker Secrets
+  # Segregated and hardened via Docker Secrets
   headscale_private_key:
     file: ./secrets/headscale_private_key.txt
   headscale_noise_private_key:

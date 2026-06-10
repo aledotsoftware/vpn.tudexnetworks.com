@@ -13,3 +13,4 @@ Added security refinements to all components.
 - **DevOps Mesh Orchestrator Agent**: Resolved `VPN_AUTH_KEY_FILE` injection issue in `satellite/entrypoint.sh` securely parsing the Docker Secret into an env variable before calling `tailscale up`.
 - **DevOps Mesh Orchestrator Agent**: Formatted the Compose build commands to standard structure `build: context: .`.
 - **Security Gateway Specialist Agent**: Auditoría Final Definitiva V40 completada. Se mitigó vulnerabilidad Slowloris configurando `timeout client 10s` y `timeout server 10s` en HAProxy, se agregó control de Vault (8200) y página 422, se robusteció `Referrer-Policy: no-referrer` y la gestión Docker Secrets, y se completaron los registros MySQL requeridos pasando satisfactoriamente test-infra.sh.
+- **Mesh Dashboard Architect Agent**: Agregadas animaciones y refinamientos visuales extra a los componentes Chart.js y tabla del Dashboard. Agregada la directiva de Content-Security-Policy en el meta tag del HTML.

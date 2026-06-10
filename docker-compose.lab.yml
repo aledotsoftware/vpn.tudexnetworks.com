@@ -124,6 +124,7 @@ volumes:
   headscale_data_beta:
 
 secrets:
+  # Segregated and hardened via Docker Secrets File definitions
   headscale_private_key:
     file: ./secrets/headscale_private_key.txt
   headscale_noise_private_key:

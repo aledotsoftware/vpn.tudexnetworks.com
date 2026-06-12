@@ -256,6 +256,12 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
     fi
 fi
 
+audit_log "SYSTEM_BOOT" "Secuencia de arranque iniciada"
+audit_log "DB_CONNECTED" "Conexión a Firebase Realtime Database establecida exitosamente"
+audit_log "TUN_INITIALIZED" "Interfaz de túnel VPN asegurada e inicializada"
+audit_log "SECRETS_LOADED" "Credenciales cacheadas de manera aislada (Entorno / Secrets)"
+audit_log "SECRETS_VERIFIED" "Secrets verificados en memoria"
+
 # Inicializar estructura base en Firebase
 EXISTING=$(curl -s "${FIREBASE_BASE_URL}/cluster_config/cluster_name.json" 2>/dev/null)
 if [ "$EXISTING" = "null" ] || [ -z "$EXISTING" ]; then
@@ -263,11 +269,6 @@ if [ "$EXISTING" = "null" ] || [ -z "$EXISTING" ]; then
     firebase_put "cluster_config/cluster_name" '{"config_value":"Tudex Global Mesh","is_critical":true}'
 fi
 
-audit_log "SYSTEM_BOOT" "Secuencia de arranque iniciada"
-audit_log "DB_CONNECTED" "Conexión a Firebase Realtime Database establecida exitosamente"
-audit_log "TUN_INITIALIZED" "Interfaz de túnel VPN asegurada e inicializada"
-audit_log "SECRETS_LOADED" "Credenciales cacheadas de manera aislada (Entorno / Secrets)"
-audit_log "SECRETS_VERIFIED" "Secrets verificados en memoria"
 
 # 2. Gestión de Identidad del Cluster
 PRIVATE_KEY=$(get_secret "/run/secrets/headscale_private_key" "HEADSCALE_PRIVATE_KEY")

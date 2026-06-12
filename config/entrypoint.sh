@@ -83,13 +83,15 @@ audit_log() {
     fi
 }
 
+# shellcheck disable=SC2030,SC2031
 MYSQL_PWD=$(get_secret "/run/secrets/db_pass" "DB_PASS")
-    export MYSQL_PWD
+export MYSQL_PWD
 if [ -z "$MYSQL_PWD" ]; then
     MYSQL_PWD=$(head -c 16 /dev/urandom | xxd -p -c 16)
     export MYSQL_PWD
     echo "⚠️ [AUTH] Fallback a contraseña auto-generada para base de datos."
 fi
+# shellcheck disable=SC2030,SC2031
 ADMIN_PANEL_PASSWORD=$(get_secret "/run/secrets/admin_password" "ADMIN_PASSWORD")
 if [ -z "$ADMIN_PANEL_PASSWORD" ]; then
     ADMIN_PANEL_PASSWORD=$(head -c 16 /dev/urandom | xxd -p -c 16)
@@ -166,7 +168,7 @@ sync_domain_mappings() {
 }
 
 # Configurar trap para salir limpiamente
-trap 'echo "🛑 Recibido SIGTERM/SIGINT. Saliendo..."; audit_log "GATEWAY_SHUTDOWN" "Gateway detenido exitosamente" "WARN" "$MASTER_IP" 2>/dev/null || true; kill $(jobs -p) 2>/dev/null; exit 0' TERM INT
+trap 'echo "🛑 Recibido SIGTERM/SIGINT. Saliendo..."; audit_log "GATEWAY_SHUTDOWN" "Gateway detenido exitosamente" "WARN" "$MASTER_IP" 2>/dev/null || true; kill $(jobs -p) 2>/dev/null || true; exit 0' TERM INT
 
 echo "🚀 TUDEX OPERATIONAL GATEWAY - BOOT SEQUENCER (V24 - FIREBASE + DYNAMIC ROUTING)"
 

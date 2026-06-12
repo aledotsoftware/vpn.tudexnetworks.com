@@ -26,6 +26,12 @@ services:
     ports:
       - "8081:80"
       - "8082:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     volumes:
       - ./config:/etc/headscale
       - headscale_data_alfa:/var/lib/headscale
@@ -63,6 +69,12 @@ services:
     ports:
       - "8181:80"
       - "8180:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     volumes:
       - ./config:/etc/headscale
       - headscale_data_beta:/var/lib/headscale

@@ -30,6 +30,12 @@ services:
       - "8080:8080"      # Headscale Control Plane
       - "8404:8404"      # HAProxy Stats
       - "41641:41641/udp"  # WireGuard Port
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     volumes:
       - ./config:/etc/headscale
       - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro

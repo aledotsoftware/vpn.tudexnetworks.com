@@ -25,6 +25,12 @@ services:
       - "8081:80"      # Dashboard y Balanceo
       - "8080:8080"    # Headscale API
       - "8404:8404"    # Stats de HAProxy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     volumes:
       - ./config:/etc/headscale
       - headscale_data:/var/lib/headscale

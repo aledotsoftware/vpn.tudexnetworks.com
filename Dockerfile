@@ -33,8 +33,7 @@ RUN apk add --no-cache \
 COPY --from=builder /bin/headscale /bin/headscale
 # Copiamos configuraciones y preparamos el entorno en menos capas
 COPY ./config/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
-COPY ./config/config.yaml ./config/dashboard.html ./config/admin-panel.html ./config/acl.hujson ./config/domain-map.txt ./config/errors /etc/headscale/
-COPY ./database/schema.sql /etc/headscale/schema.sql
+COPY ./config/config.yaml ./config/dashboard.html ./config/admin-panel.html ./config/acl.hujson ./config/domain-map.txt ./config/errors ./database/schema.sql /etc/headscale/
 COPY ./config/entrypoint.sh /entrypoint.sh
 
 RUN mv /etc/headscale/errors /etc/headscale/errors_tmp && \

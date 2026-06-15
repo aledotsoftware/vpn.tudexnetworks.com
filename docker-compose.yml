@@ -50,6 +50,11 @@ services:
       - firebase_api_key
     networks:
       - tudex_mesh_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # --- NODO SATÉLITE 01 (PHP APP) ---
   node-01:
@@ -76,6 +81,11 @@ services:
       - ts_authkey
     networks:
       - tudex_mesh_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # --- NODO SATÉLITE 02 (PHP APP) ---
   node-02:
@@ -102,6 +112,11 @@ services:
       - ts_authkey
     networks:
       - tudex_mesh_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   tudex_mesh_net:

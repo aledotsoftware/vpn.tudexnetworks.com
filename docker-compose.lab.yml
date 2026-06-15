@@ -41,6 +41,11 @@ services:
       - admin_password
       - db_pass
       - firebase_api_key
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # --- GATEWAY BETA (HA Mirror - Firebase) ---
   gateway-beta:
@@ -84,6 +89,11 @@ services:
       - admin_password
       - db_pass
       - firebase_api_key
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # --- NODO SATÉLITE 1 ---
   node-01:
@@ -107,6 +117,11 @@ services:
       - ts_authkey
     networks:
       - default
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # --- NODO SATÉLITE 2 ---
   node-02:
@@ -130,6 +145,11 @@ services:
       - ts_authkey
     networks:
       - default
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   headscale_data_alfa:

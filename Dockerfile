@@ -13,6 +13,8 @@ RUN apk add --no-cache curl && \
 # Usamos Alpine como base para tener un shell y gestor de paquetes
 FROM alpine:3.19
 
+ENV TZ=UTC
+
 # Instalamos HAProxy y dependencias
 # jq reemplaza a mariadb-client para parsear respuestas JSON de Firebase
 # mariadb-client es añadido de vuelta para compatibilidad de logs legacy

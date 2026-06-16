@@ -52,7 +52,30 @@ else
     exit 1
 fi
 
-# 4. Docker Compose config
+# 4. Dockerfile linting (Hadolint)
+echo "🐳 [TEST] Validando Dockerfiles con Hadolint..."
+if command -v hadolint &> /dev/null; then
+    hadolint Dockerfile || echo "⚠️ [TEST] Hadolint encontró advertencias en Dockerfile principal."
+    if [ -f satellite/Dockerfile ]; then
+        hadolint satellite/Dockerfile || echo "⚠️ [TEST] Hadolint encontró advertencias en satellite/Dockerfile."
+    fi
+    echo "✅ [TEST] Dockerfile linting completado (nativo)."
+else
+    echo "⚠️ [TEST] hadolint no encontrado. Descargándolo temporalmente para CI..."
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "x86_64" ]; then HL_ARCH="x86_64";
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then HL_ARCH="arm64";
+    else HL_ARCH="x86_64"; fi
+    curl -sL -o /tmp/hadolint "https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-${HL_ARCH}"
+    chmod +x /tmp/hadolint
+    /tmp/hadolint Dockerfile || echo "⚠️ [TEST] Hadolint encontró advertencias en Dockerfile principal."
+    if [ -f satellite/Dockerfile ]; then
+        /tmp/hadolint satellite/Dockerfile || echo "⚠️ [TEST] Hadolint encontró advertencias en satellite/Dockerfile."
+    fi
+    echo "✅ [TEST] Dockerfile linting completado."
+fi
+
+# 5. Docker Compose config
 echo "🐳 [TEST] Validando Docker Compose..."
 export DB_TYPE="dummy" FIREBASE_DB_URL="dummy" FIREBASE_PROJECT_ID="dummy" FIREBASE_API_KEY="dummy" DB_HOST="dummy" DB_USER="dummy" DB_NAME="dummy" TS_AUTHKEY="dummy" VPN_IP_PREFIX_ALFA="dummy" VPN_IP_PREFIX_BETA="dummy" VPN_BASE_DOMAIN="dummy" VPN_SERVER_URL="dummy" VPN_IP_PREFIX="dummy" NODE_NAME="dummy" TS_LOGIN_SERVER="dummy"
 if docker compose config -q; then

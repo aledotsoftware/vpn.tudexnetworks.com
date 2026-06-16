@@ -19,20 +19,22 @@ RUN curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.noarmor.gpg | t
     && rm -rf /var/lib/apt/lists/*
 
 # Configurar Apache
-RUN a2enmod rewrite
+RUN a2enmod rewrite && \
+    rm -f /var/www/html/index.html
 
 # Copiar archivos
-COPY index.php /var/www/html/index.php
-COPY entrypoint.sh /entrypoint.sh
+COPY index.php entrypoint.sh /tmp/
 
-# Asegurar permisos del entrypoint
-RUN chmod +x /entrypoint.sh
-
-# Eliminar el index.html por defecto para que muestre nuestro PHP
-RUN rm -f /var/www/html/index.html
+# Mover y asegurar permisos en un solo RUN
+RUN mv /tmp/index.php /var/www/html/index.php && \
+    mv /tmp/entrypoint.sh /entrypoint.sh && \
+    chmod +x /entrypoint.sh
 
 # Exponer el puerto HTTP
 EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:80/ || exit 1
 
 # Comando de inicio
 ENTRYPOINT ["/entrypoint.sh"]

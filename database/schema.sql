@@ -12,11 +12,9 @@ CREATE TABLE IF NOT EXISTS headscale_secrets (
     key_content TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL, -- Binary collation prevents case-folding corruption of secrets
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     description VARCHAR(255),
-    updated_by VARCHAR(64) DEFAULT 'system'
+    updated_by VARCHAR(64) DEFAULT 'system',
+    CONSTRAINT check_key_name_not_empty CHECK (key_name <> '')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
-
--- Mantenimiento de integridad: previene inserciones con nombres de clave vacíos
-ALTER TABLE headscale_secrets ADD CONSTRAINT check_key_name_not_empty CHECK (key_name <> '');
 
 -- 2. Histórico de Nodos y Salud
 -- Para generar las gráficas del Dashboard de forma persistente.

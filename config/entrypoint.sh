@@ -232,6 +232,10 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
     DELAY=1
 
     while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        # Extract MYSQL_PWD securely here before ping loop in case it got dropped
+        # shellcheck disable=SC2030,SC2031
+        MYSQL_PWD=$(get_secret "/run/secrets/db_pass" "DB_PASS")
+        export MYSQL_PWD
         if timeout 2 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" --silent > /dev/null 2>&1; then
             DB_READY=true
             echo "✅ [DB] Conexión a MariaDB establecida exitosamente."
@@ -254,6 +258,7 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
     if [ "$DB_READY" = "false" ]; then
         echo "❌ [DB] Error crítico: No se pudo conectar a MariaDB después de $MAX_RETRIES intentos."
         echo "[$(date -u)] SECURITY_AUDIT - EVENT: DB_ERROR - Fallo en inicialización de conexión a MariaDB" >> /var/log/headscale_security_audit.log
+        echo "⚠️ Saliendo. Verifica la conexión a MariaDB."
         exit 1
     fi
 fi

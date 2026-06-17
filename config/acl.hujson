@@ -85,7 +85,7 @@
     {
       "action": "accept",
       "src": ["group:admin", "group:security"],
-      "dst": ["core-mesh:3306", "core-mesh:33060", "core-mesh:5432", "core-mesh:6379", "core-mesh:9200", "core-mesh:11211", "core-mesh:27017", "core-mesh:2375", "core-mesh:8200", "cdn-mesh:3306", "cdn-mesh:33060", "cdn-mesh:5432", "cdn-mesh:6379", "cdn-mesh:9200", "cdn-mesh:11211", "cdn-mesh:27017", "cdn-mesh:2375", "cdn-mesh:8200"]
+      "dst": ["core-mesh:3306", "core-mesh:33060", "core-mesh:5432", "core-mesh:6379", "core-mesh:9200", "core-mesh:11211", "core-mesh:27017", "core-mesh:2375", "core-mesh:8200"]
     },
     // [SECURITY GATEWAY] Bloqueo Activo y Explicito (Hardening)
     // El principio de Denegación por Defecto (Default Deny) está implícito,

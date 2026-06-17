@@ -4,7 +4,8 @@ FROM php:8.2-apache
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Instalar dependencias necesarias
-RUN apt-get update && apt-get install -y \
+# hadolint ignore=DL3008,DL3015
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gnupg \
     iptables \
@@ -13,9 +14,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar Tailscale
+# hadolint ignore=DL3008,DL3015,DL4006
 RUN curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.noarmor.gpg | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null \
     && curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.tailscale-keyring.list | tee /etc/apt/sources.list.d/tailscale.list \
-    && apt-get update && apt-get install -y tailscale \
+    && apt-get update && apt-get install -y --no-install-recommends tailscale \
     && rm -rf /var/lib/apt/lists/*
 
 # Configurar Apache

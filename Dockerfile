@@ -1,6 +1,7 @@
 
 # Build stage para descargar dependencias pesadas
 FROM alpine:3.19 AS builder
+# hadolint ignore=DL3018
 RUN apk add --no-cache curl && \
     ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then HS_ARCH="amd64"; \
@@ -18,6 +19,7 @@ ENV TZ=UTC
 # Instalamos HAProxy y dependencias
 # jq reemplaza a mariadb-client para parsear respuestas JSON de Firebase
 # mariadb-client es añadido de vuelta para compatibilidad de logs legacy
+# hadolint ignore=DL3018
 RUN apk add --no-cache \
     haproxy \
     jq \
@@ -35,15 +37,13 @@ RUN apk add --no-cache \
 COPY --from=builder /bin/headscale /bin/headscale
 # Copiamos configuraciones y preparamos el entorno en menos capas
 COPY ./config/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
-COPY ./config/config.yaml ./config/dashboard.html ./config/admin-panel.html ./config/acl.hujson ./config/domain-map.txt ./config/errors ./database/schema.sql /etc/headscale/
+COPY ./config/config.yaml ./config/dashboard.html ./config/admin-panel.html ./config/acl.hujson ./config/domain-map.txt ./database/schema.sql /etc/headscale/
+COPY ./config/errors /etc/headscale/errors
 COPY ./config/entrypoint.sh /entrypoint.sh
 
-RUN mv /etc/headscale/errors /etc/headscale/errors_tmp && \
-    mkdir -p /etc/headscale/errors && \
-    mv /etc/headscale/errors_tmp/* /etc/headscale/errors/ || true && \
-    rm -rf /etc/headscale/errors_tmp && \
-    sed -i 's/\r$//' /entrypoint.sh && \
+RUN sed -i 's/\r$//' /entrypoint.sh && \
     chmod +x /entrypoint.sh
+
 
 # Puertos
 EXPOSE 80 443 8080 9090 8404

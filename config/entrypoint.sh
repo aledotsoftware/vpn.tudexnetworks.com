@@ -246,6 +246,11 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
                 audit_log "DB_SCHEMA_SYNC" "Esquema de base de datos verificado y sincronizado" "INFO"
                 audit_log "MYSQL_AUDIT_READY" "Motor de logging MySQL y auditoría inicializado" "INFO"
                 audit_log "MYSQL_AUDIT" "Auditoría MySQL inicializada" "INFO"
+                audit_log "SYSTEM_BOOT" "Secuencia de arranque iniciada"
+                audit_log "DB_CONNECTED" "Conexión a Firebase Realtime Database establecida exitosamente"
+                audit_log "TUN_INITIALIZED" "Interfaz de túnel VPN asegurada e inicializada"
+                audit_log "SECRETS_LOADED" "Credenciales cacheadas de manera aislada (Entorno / Secrets)"
+                audit_log "SECRETS_VERIFIED" "Secrets verificados en memoria"
             fi
             break
         fi
@@ -263,11 +268,6 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
     fi
 fi
 
-audit_log "SYSTEM_BOOT" "Secuencia de arranque iniciada"
-audit_log "DB_CONNECTED" "Conexión a Firebase Realtime Database establecida exitosamente"
-audit_log "TUN_INITIALIZED" "Interfaz de túnel VPN asegurada e inicializada"
-audit_log "SECRETS_LOADED" "Credenciales cacheadas de manera aislada (Entorno / Secrets)"
-audit_log "SECRETS_VERIFIED" "Secrets verificados en memoria"
 
 # Inicializar estructura base en Firebase
 EXISTING=$(curl -s "${FIREBASE_BASE_URL}/cluster_config/cluster_name.json" 2>/dev/null)

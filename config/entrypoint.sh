@@ -234,8 +234,11 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
     while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
         # Extract MYSQL_PWD securely here before ping loop in case it got dropped
         # shellcheck disable=SC2030,SC2031
-        MYSQL_PWD=$(get_secret "/run/secrets/db_pass" "DB_PASS")
-        export MYSQL_PWD
+        TEMP_MYSQL_PWD=$(get_secret "/run/secrets/db_pass" "DB_PASS")
+        if [ -n "$TEMP_MYSQL_PWD" ]; then
+            MYSQL_PWD=$TEMP_MYSQL_PWD
+            export MYSQL_PWD
+        fi
         # Extract ADMIN_PANEL_PASSWORD securely here before ping loop in case it got dropped
         # shellcheck disable=SC2030,SC2031
         TEMP_ADMIN_PASS=$(get_secret "/run/secrets/admin_password" "ADMIN_PASSWORD")

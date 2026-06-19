@@ -1,4 +1,3 @@
-
 # Build stage para descargar dependencias pesadas
 FROM alpine:3.19 AS builder
 # hadolint ignore=DL3018
@@ -37,15 +36,17 @@ RUN apk add --no-cache \
 COPY --from=builder /bin/headscale /bin/headscale
 # Copiamos configuraciones y preparamos el entorno en menos capas
 COPY ./config/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
-COPY ./config/config.yaml ./config/dashboard.html ./config/admin-panel.html ./config/acl.hujson ./config/domain-map.txt ./database/schema.sql /etc/headscale/
-COPY ./config/errors /etc/headscale/errors
+COPY ./config/config.yaml ./config/dashboard.html ./config/admin-panel.html ./config/acl.hujson ./config/domain-map.txt /etc/headscale/
+COPY ./database/schema.sql /etc/headscale/schema.sql
+COPY ./config/errors/ /etc/headscale/errors/
 COPY ./config/entrypoint.sh /entrypoint.sh
 
 RUN sed -i 's/\r$//' /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
-
 # Puertos
+STOPSIGNAL SIGTERM
+
 EXPOSE 80 443 8080 9090 8404
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \

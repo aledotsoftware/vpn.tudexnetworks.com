@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS security_audit (
 CREATE INDEX idx_security_audit_event_type ON security_audit(event_type);
 CREATE INDEX idx_security_audit_event_resolved ON security_audit(event_type, resolved);
 CREATE INDEX idx_security_audit_event_severity ON security_audit(event_type, severity);
+CREATE INDEX idx_security_audit_severity_event ON security_audit(severity, event_type);
 CREATE INDEX idx_security_audit_created_at ON security_audit(created_at);
 CREATE INDEX idx_security_audit_ip_source ON security_audit(ip_source);
 CREATE INDEX idx_security_audit_detailed ON security_audit(detailed_audit);

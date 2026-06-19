@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS headscale_secrets (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     description VARCHAR(255),
     updated_by VARCHAR(64) DEFAULT 'system',
-    CONSTRAINT check_key_name_not_empty CHECK (key_name <> '')
+    CONSTRAINT check_key_name_not_empty CHECK (key_name <> ''),
+    CONSTRAINT check_key_content_not_empty CHECK (key_content <> '')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- 2. Histórico de Nodos y Salud

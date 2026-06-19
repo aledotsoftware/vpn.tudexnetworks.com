@@ -76,6 +76,12 @@ services:
       - NODE_NAME=node-01
       - VPN_SERVER_URL=${VPN_SERVER_URL:-http://headscale:8080}
       - VPN_AUTH_KEY_FILE=/run/secrets/ts_authkey
+    healthcheck:
+      test: ["CMD", "tailscale", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     secrets:
       # Segregated and hardened via Docker Secrets
       - ts_authkey
@@ -107,6 +113,12 @@ services:
       - NODE_NAME=node-02
       - VPN_SERVER_URL=${VPN_SERVER_URL:-http://headscale:8080}
       - VPN_AUTH_KEY_FILE=/run/secrets/ts_authkey
+    healthcheck:
+      test: ["CMD", "tailscale", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     secrets:
       # Segregated and hardened via Docker Secrets
       - ts_authkey

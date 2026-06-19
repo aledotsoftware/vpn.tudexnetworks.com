@@ -1,25 +1,29 @@
-name: CI Pipeline
+name: Tudex Mesh CI/CD
 
-"on": [push, pull_request]
+"on":
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
 
 jobs:
-  test-infrastructure:
+  validate:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install dependencies natively
-        run: sudo apt-get update && sudo apt-get install -y haproxy shellcheck yamllint mariadb-client jq
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck haproxy yamllint mariadb-client jq
 
-      - name: Ensure CI specific HAProxy Mock paths
+      - name: Setup HAProxy Mock Environment
         run: |
           sudo mkdir -p /etc/headscale/errors
-          sudo cp -r config/errors/* /etc/headscale/errors/ || true
-          sudo touch /etc/headscale/dashboard.html
-          sudo touch /etc/headscale/admin-panel.html
-          sudo touch /etc/headscale/domain-map.txt
-          sudo touch /etc/headscale/schema.sql
+          sudo cp -r config/errors/* /etc/headscale/errors/ 2>/dev/null || true
+          sudo touch /etc/headscale/dashboard.html /etc/headscale/admin-panel.html /etc/headscale/domain-map.txt /etc/headscale/schema.sql
 
-      - name: Run infrastructure tests
-        run: bash scripts/test-infra.sh
+      - name: Run infrastructure validation tests
+        run: |
+          chmod +x scripts/test-infra.sh
+          ./scripts/test-infra.sh

@@ -110,7 +110,7 @@
       "action": "accept",
       "src": ["group:admin"],
       "dst": ["core-mesh", "cdn-mesh"],
-      "users": ["root", "admin", "ubuntu"]
+      "users": ["root", "admin"]
     }
   ]
 }

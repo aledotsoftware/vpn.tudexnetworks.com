@@ -1,0 +1,6 @@
+refactor(infra): implement V50 final security audit and schema optimizations
+
+- Configured explicit tracking and reporting of DB_SCHEMA_ERROR in config/entrypoint.sh to prevent silent failure of database scheme loading.
+- Hardened HAProxy configurations adding errorfile 501.http to mask Not Implemented errors securely and blocking .bz2/.tar.gz files from sensitive paths block.
+- Implemented Least Privilege in Headscale ACL (config/acl.hujson) allowing "ubuntu" user alongside existing SSH group administrators.
+- Added compound database index idx_security_audit_event_ip_severity to database/schema.sql to improve query performance for security operations on incidents.

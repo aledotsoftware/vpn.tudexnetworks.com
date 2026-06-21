@@ -252,8 +252,12 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
             # Ensure schema is applied immediately after connection and before any insertions
             if [ -f /etc/headscale/schema.sql ]; then
                 echo "🔧 [DB] Aplicando esquema de base de datos..."
-                mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" < /etc/headscale/schema.sql || echo "⚠️ [DB] Error al aplicar esquema. Puede que ya exista."
-                audit_log "DB_SCHEMA_SYNC" "Esquema de base de datos verificado y sincronizado" "INFO"
+                if mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" < /etc/headscale/schema.sql; then
+                    audit_log "DB_SCHEMA_SYNC" "Esquema de base de datos verificado y sincronizado" "INFO"
+                else
+                    echo "⚠️ [DB] Error al aplicar esquema. Puede que ya exista o sea inválido."
+                    echo "[$(date -u)] SECURITY_AUDIT - EVENT: DB_SCHEMA_ERROR - Error al sincronizar el esquema de la base de datos" >> /var/log/headscale_security_audit.log
+                fi
                 audit_log "MYSQL_AUDIT_READY" "Motor de logging MySQL y auditoría inicializado" "INFO"
                 audit_log "MYSQL_AUDIT" "Auditoría MySQL inicializada" "INFO"
                 audit_log "SYSTEM_BOOT" "Secuencia de arranque iniciada"

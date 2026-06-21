@@ -88,6 +88,7 @@ CREATE INDEX idx_security_audit_resolved_ip ON security_audit(resolved, ip_sourc
 CREATE INDEX idx_security_audit_resolved_ip_severity ON security_audit(resolved, ip_source, severity);
 CREATE INDEX idx_security_audit_event_created_at ON security_audit(event_type, created_at);
 CREATE INDEX idx_security_audit_severity_resolved ON security_audit(severity, resolved);
+CREATE INDEX idx_security_audit_event_ip_severity ON security_audit(event_type, ip_source, severity);
 
 -- DATOS INICIALES DE EJEMPLO PARA EL DASHBOARD
 INSERT IGNORE INTO cluster_config (config_key, config_value, is_critical)

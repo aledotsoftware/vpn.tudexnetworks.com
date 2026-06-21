@@ -21,6 +21,8 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_USER=${DB_USER}
       - DB_NAME=${DB_NAME}
+      - DB_PASS_FILE=/run/secrets/db_pass
+      - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
     ports:
       - "8081:80"      # Dashboard y Balanceo
       - "8080:8080"    # Headscale API

@@ -20,6 +20,8 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_USER=${DB_USER}
       - DB_NAME=${DB_NAME}
+      - DB_PASS_FILE=/run/secrets/db_pass
+      - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
       - VPN_IP_PREFIX=${VPN_IP_PREFIX_ALFA}
       - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN}
       - VPN_SERVER_URL=${VPN_SERVER_URL:-http://gateway_alfa:8080}
@@ -68,6 +70,8 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_USER=${DB_USER}
       - DB_NAME=${DB_NAME}
+      - DB_PASS_FILE=/run/secrets/db_pass
+      - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
       - VPN_IP_PREFIX=${VPN_IP_PREFIX_BETA}
       - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN}
       - VPN_SERVER_URL=${VPN_SERVER_URL:-http://gateway_beta:8080}

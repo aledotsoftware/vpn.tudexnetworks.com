@@ -92,3 +92,4 @@ CREATE INDEX idx_security_audit_severity_resolved ON security_audit(severity, re
 -- DATOS INICIALES DE EJEMPLO PARA EL DASHBOARD
 INSERT IGNORE INTO cluster_config (config_key, config_value, is_critical)
 VALUES ('cluster_name', 'Tudex Global Mesh', TRUE);
+CREATE INDEX idx_security_audit_severity_alert ON security_audit(severity, is_alert);

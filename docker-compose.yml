@@ -22,6 +22,8 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_USER=${DB_USER}
       - DB_NAME=${DB_NAME}
+      - DB_PASS_FILE=/run/secrets/db_pass
+      - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
       - VPN_IP_PREFIX=${VPN_IP_PREFIX:-100.64.0.0/10}
       - VPN_BASE_DOMAIN=${VPN_BASE_DOMAIN:-vpn.internal}
       - VPN_SERVER_URL=${VPN_SERVER_URL:-http://headscale:8080}

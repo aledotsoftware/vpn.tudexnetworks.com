@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS network_stats (
 CREATE TABLE IF NOT EXISTS cluster_config (
     config_key VARCHAR(64) PRIMARY KEY,
     config_value TEXT,
-    is_critical BOOLEAN DEFAULT FALSE
+    is_critical BOOLEAN DEFAULT FALSE,
+    CONSTRAINT check_config_key_not_empty CHECK (config_key <> '')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- 4. Audit Log de Seguridad
@@ -48,7 +49,8 @@ CREATE TABLE IF NOT EXISTS security_audit (
     detailed_audit BOOLEAN DEFAULT FALSE,
     is_alert BOOLEAN DEFAULT FALSE,
     resolved BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT check_event_type_not_empty CHECK (event_type <> '')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- Índices para optimizar la monitorización y búsqueda de eventos de seguridad por tipo o fecha

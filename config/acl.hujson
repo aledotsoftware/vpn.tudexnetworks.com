@@ -34,7 +34,7 @@
       "src": ["group:admin"],
       "dst": ["core-mesh:80", "cdn-mesh:80", "core-mesh:443", "cdn-mesh:443", "core-mesh:8080", "core-mesh:8404", "core-mesh:9090", "core-mesh:41641", "cdn-mesh:41641"]
     },
-    // Acceso restringido para el grupo de seguridad (sin puertos de administración principal)
+    // Acceso restringido para el grupo de seguridad (aislado para Least Privilege)
     {
       "action": "accept",
       "src": ["group:security"],
@@ -84,7 +84,7 @@
     // exclusivamente a los grupos de administradores y seguridad.
     {
       "action": "accept",
-      "src": ["group:admin", "group:security"],
+      "src": ["group:admin"],
       "dst": ["core-mesh:3306", "core-mesh:33060", "core-mesh:5432", "core-mesh:6379", "core-mesh:9200", "core-mesh:11211", "core-mesh:27017", "core-mesh:2375", "core-mesh:8200"]
     },
     // [SECURITY GATEWAY] Bloqueo Activo y Explicito (Hardening)

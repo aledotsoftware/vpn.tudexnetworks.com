@@ -34,13 +34,15 @@ RUN apk add --no-cache \
 
 # Copiamos el binario compilado/descargado desde la fase builder
 COPY --from=builder /bin/headscale /bin/headscale
-# Copiamos configuraciones y preparamos el entorno en menos capas
-COPY ./config/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
-COPY ./config/config.yaml ./config/dashboard.html ./config/admin-panel.html ./config/acl.hujson ./config/domain-map.txt ./database/schema.sql /etc/headscale/
-COPY ./config/errors/ /etc/headscale/errors/
-COPY ./config/entrypoint.sh /entrypoint.sh
+# Copiamos configuraciones y preparamos el entorno en menos capas consolidando copias
+COPY ./config/ ./database/ /tmp/setup/
 
-RUN sed -i 's/\r$//' /entrypoint.sh && \
+RUN mv /tmp/setup/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg && \
+    mv /tmp/setup/config.yaml /tmp/setup/dashboard.html /tmp/setup/admin-panel.html /tmp/setup/acl.hujson /tmp/setup/domain-map.txt /tmp/setup/schema.sql /etc/headscale/ && \
+    mv /tmp/setup/errors /etc/headscale/errors && \
+    mv /tmp/setup/entrypoint.sh /entrypoint.sh && \
+    rm -rf /tmp/setup && \
+    sed -i 's/\r$//' /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
 # Puertos

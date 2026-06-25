@@ -81,10 +81,10 @@
     },
     // [SECURITY GATEWAY] Aislamiento de Bases de Datos y Caché
     // Las conexiones a MariaDB (3306), PostgreSQL (5432), Redis (6379), Elasticsearch (9200), Memcached (11211), MongoDB (27017), Docker API (2375) y Vault (8200) están restringidas
-    // exclusivamente a los grupos de administradores y seguridad.
+    // exclusivamente a los grupos de administradores.
     {
       "action": "accept",
-      "src": ["group:admin", "group:security"],
+      "src": ["group:admin"],
       "dst": ["core-mesh:3306", "core-mesh:33060", "core-mesh:5432", "core-mesh:6379", "core-mesh:9200", "core-mesh:11211", "core-mesh:27017", "core-mesh:2375", "core-mesh:8200"]
     },
     // [SECURITY GATEWAY] Bloqueo Activo y Explicito (Hardening)

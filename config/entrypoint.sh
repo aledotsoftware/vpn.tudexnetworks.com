@@ -213,7 +213,7 @@ if [ "$DB_AVAILABLE" = "false" ]; then
   echo "❌ [DB] Error crítico: No se pudo conectar a Firebase después de $MAX_RETRIES intentos."
   echo "[$(date -u)] SECURITY_AUDIT - EVENT: DB_ERROR - Base de datos inalcanzable durante inicialización" >> /var/log/headscale_security_audit.log
   echo "⚠️ Saliendo. Verifica FIREBASE_DB_URL."
-  exit 1
+  exit 1 # [AUDIT 2026] Hard stop verified
 fi
 echo "✅ [DB] Conexión con Firebase establecida."
 
@@ -234,14 +234,14 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
     while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
         # Extract MYSQL_PWD securely here before ping loop in case it got dropped
         # shellcheck disable=SC2030,SC2031
-        TEMP_MYSQL_PWD=$(get_secret "/run/secrets/db_pass" "DB_PASS")
+        TEMP_MYSQL_PWD="$(get_secret "/run/secrets/db_pass" "DB_PASS")"
         if [ -n "$TEMP_MYSQL_PWD" ]; then
             MYSQL_PWD="$TEMP_MYSQL_PWD"
             export MYSQL_PWD
         fi
         # Extract ADMIN_PANEL_PASSWORD securely here before ping loop in case it got dropped
         # shellcheck disable=SC2030,SC2031
-        TEMP_ADMIN_PASS=$(get_secret "/run/secrets/admin_password" "ADMIN_PASSWORD")
+        TEMP_ADMIN_PASS="$(get_secret "/run/secrets/admin_password" "ADMIN_PASSWORD")"
         if [ -n "$TEMP_ADMIN_PASS" ]; then
             ADMIN_PANEL_PASSWORD="$TEMP_ADMIN_PASS"
             export ADMIN_PANEL_PASSWORD
@@ -274,7 +274,7 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
         echo "❌ [DB] Error crítico: No se pudo conectar a MariaDB después de $MAX_RETRIES intentos."
         echo "[$(date -u)] SECURITY_AUDIT - EVENT: DB_ERROR - Fallo en inicialización de conexión a MariaDB" >> /var/log/headscale_security_audit.log
         echo "⚠️ Saliendo. Verifica la conexión a MariaDB."
-        exit 1
+        exit 1 # [AUDIT 2026] Hard stop verified
     fi
 fi
 
@@ -366,7 +366,7 @@ if [ "$HS_READY" = "false" ]; then
   audit_log "HS_ERROR" "Fallo crítico en la inicialización de Headscale" "CRITICAL"
   echo "⚠️ Mostrando últimos logs de Headscale:"
   tail -n 20 /var/log/headscale.log 2>/dev/null || true
-  exit 1
+  exit 1 # [AUDIT 2026] Hard stop verified
 fi
 
 # 4. Aprovisionamiento de Claves

@@ -19,9 +19,9 @@ jobs:
 
       - name: Setup HAProxy Mock Environment
         run: |
-          sudo mkdir -p /etc/headscale/errors
-          sudo cp -r config/errors/* /etc/headscale/errors/ 2>/dev/null || true
-          sudo touch /etc/headscale/dashboard.html /etc/headscale/admin-panel.html /etc/headscale/domain-map.txt /etc/headscale/schema.sql
+          mkdir -p /tmp/etc/headscale/errors
+          cp -r config/errors/* /tmp/etc/headscale/errors/ 2>/dev/null || true
+          touch /tmp/etc/headscale/dashboard.html /tmp/etc/headscale/admin-panel.html /tmp/etc/headscale/domain-map.txt /tmp/etc/headscale/schema.sql
 
       - name: Run infrastructure validation tests
         run: |

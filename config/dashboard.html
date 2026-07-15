@@ -220,6 +220,14 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        @keyframes float { 0% { transform: translate(0, 0) scale(1); } 33% { transform: translate(30px, -50px) scale(1.1); } 66% { transform: translate(-20px, 20px) scale(0.9); } 100% { transform: translate(0, 0) scale(1); } }
+        @keyframes float2 { 0% { transform: translate(0, 0) scale(1); } 33% { transform: translate(-30px, 50px) scale(1.2); } 66% { transform: translate(20px, -20px) scale(0.8); } 100% { transform: translate(0, 0) scale(1); } }
+        @keyframes float3 { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(40px, 40px) scale(1.1); } 100% { transform: translate(0, 0) scale(1); } }
+        .bg-orb { position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.5; z-index: -1; pointer-events: none; }
+        .bg-orb-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: radial-gradient(circle, var(--primary-glow), transparent 70%); animation: float 15s infinite ease-in-out; }
+        .bg-orb-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: radial-gradient(circle, var(--success-glow), transparent 70%); animation: float2 20s infinite ease-in-out; }
+        .bg-orb-3 { top: 40%; left: 30%; width: 40vw; height: 40vw; background: radial-gradient(circle, rgba(0,153,255,0.2), transparent 70%); animation: float3 18s infinite ease-in-out; }
+
         /* Responsive Design */
         @media (max-width: 1024px) {
             .layout-container { grid-template-columns: 1fr; }
@@ -252,6 +260,9 @@
     </style>
 </head>
 <body>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
 
     <div id="loading-overlay" class="loading-overlay">
         <div class="spinner" role="status" aria-label="Loading"></div>

@@ -236,14 +236,14 @@ if command -v mariadb >/dev/null 2>&1 && [ -n "$DB_HOST" ]; then
         # shellcheck disable=SC2030,SC2031
         TEMP_MYSQL_PWD="$(get_secret "/run/secrets/db_pass" "DB_PASS")"
         if [ -n "$TEMP_MYSQL_PWD" ]; then
-            MYSQL_PWD="${TEMP_MYSQL_PWD}"
+            MYSQL_PWD="$TEMP_MYSQL_PWD"
             export MYSQL_PWD
         fi
         # Extract ADMIN_PANEL_PASSWORD securely here before ping loop in case it got dropped
         # shellcheck disable=SC2030,SC2031
         TEMP_ADMIN_PASS="$(get_secret "/run/secrets/admin_password" "ADMIN_PASSWORD")"
         if [ -n "$TEMP_ADMIN_PASS" ]; then
-            ADMIN_PANEL_PASSWORD="${TEMP_ADMIN_PASS}"
+            ADMIN_PANEL_PASSWORD="$TEMP_ADMIN_PASS"
             export ADMIN_PANEL_PASSWORD
         fi
         if timeout 2 mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" --silent > /dev/null 2>&1; then

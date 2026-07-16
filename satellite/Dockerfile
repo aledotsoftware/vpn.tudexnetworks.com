@@ -2,6 +2,7 @@ FROM php:8.2-apache
 
 # Evitar prompts interactivos
 ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
 
 # Instalar dependencias necesarias
 # hadolint ignore=DL3008,DL3015
@@ -25,12 +26,12 @@ RUN a2enmod rewrite && \
     rm -f /var/www/html/index.html
 
 # Copiar archivos
-COPY index.php entrypoint.sh /tmp/
+COPY index.php /var/www/html/index.php
+COPY entrypoint.sh /entrypoint.sh
 
-# Mover y asegurar permisos en un solo RUN
-RUN mv /tmp/index.php /var/www/html/index.php && \
-    mv /tmp/entrypoint.sh /entrypoint.sh && \
-    chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+STOPSIGNAL SIGTERM
 
 # Exponer el puerto HTTP
 EXPOSE 80

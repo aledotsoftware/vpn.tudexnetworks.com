@@ -79,7 +79,9 @@ audit_log() {
         # shellcheck disable=SC3043
         local safe_desc
         safe_desc=$(printf "%s" "$description" | sed 's/\\/\\\\/g; s/'\''/''/g')
-        mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" -e "INSERT INTO security_audit (event_type, severity, description, ip_source, detailed_audit) VALUES ('$event_type', '$severity', '$safe_desc', '$ip_source', 1);" || true
+        if [ "$DB_READY" = "true" ]; then
+            mariadb -h "$DB_HOST" -u "$DB_USER" -p"${DB_PASS:-$MYSQL_PWD}" "$DB_NAME" -e "INSERT INTO security_audit (event_type, severity, description, ip_source, detailed_audit) VALUES ('$event_type', '$severity', '$safe_desc', '$ip_source', 1);" || true
+        fi
     fi
 }
 

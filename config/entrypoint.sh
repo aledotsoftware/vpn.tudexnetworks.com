@@ -377,7 +377,7 @@ if headscale users create tudex-admin 2>/dev/null; then
 fi || true
 
 # API Key Dashboard - Self-Healing
-API_KEY=$(firebase_get "headscale_secrets/api_key/key_content")
+API_KEY="$(firebase_get "headscale_secrets/api_key/key_content")"
 VALID_KEY=false
 if [ -n "$API_KEY" ]; then
     CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $API_KEY" http://localhost:8080/api/v1/machine)
@@ -400,7 +400,7 @@ if [ "$VALID_KEY" = "false" ]; then
 fi
 
 # Satellite Pre-AuthKey
-SATELLITE_KEY=$(firebase_get "headscale_secrets/satellite_auth_key/key_content")
+SATELLITE_KEY="$(firebase_get "headscale_secrets/satellite_auth_key/key_content")"
 if [ -z "$SATELLITE_KEY" ]; then
     SATELLITE_KEY=$(headscale preauthkeys create -u tudex-admin --reusable --expiration 2160h | grep -oE "[a-f0-9]{48}" || echo "")
     if [ -n "$SATELLITE_KEY" ]; then

@@ -20,7 +20,7 @@ get_secret() {
     fi
 }
 
-FIREBASE_API_KEY=$(get_secret "/run/secrets/firebase_api_key" "FIREBASE_API_KEY")
+FIREBASE_API_KEY="$(get_secret "/run/secrets/firebase_api_key" "FIREBASE_API_KEY")"
 export FIREBASE_API_KEY
 FIREBASE_BASE_URL="${FIREBASE_DB_URL}"
 
@@ -86,17 +86,17 @@ audit_log() {
 }
 
 # shellcheck disable=SC2030,SC2031
-MYSQL_PWD=$(get_secret "/run/secrets/db_pass" "DB_PASS")
+MYSQL_PWD="$(get_secret "/run/secrets/db_pass" "DB_PASS")"
 export MYSQL_PWD
 if [ -z "$MYSQL_PWD" ]; then
-    MYSQL_PWD=$(head -c 16 /dev/urandom | xxd -p -c 16)
+    MYSQL_PWD="$(head -c 16 /dev/urandom | xxd -p -c 16)"
     export MYSQL_PWD
     echo "⚠️ [AUTH] Fallback a contraseña auto-generada para base de datos."
 fi
 # shellcheck disable=SC2030,SC2031
-ADMIN_PANEL_PASSWORD=$(get_secret "/run/secrets/admin_password" "ADMIN_PASSWORD")
+ADMIN_PANEL_PASSWORD="$(get_secret "/run/secrets/admin_password" "ADMIN_PASSWORD")"
 if [ -z "$ADMIN_PANEL_PASSWORD" ]; then
-    ADMIN_PANEL_PASSWORD=$(head -c 16 /dev/urandom | xxd -p -c 16)
+    ADMIN_PANEL_PASSWORD="$(head -c 16 /dev/urandom | xxd -p -c 16)"
     echo "⚠️ [AUTH] Fallback a contraseña auto-generada para panel de administración: No se proveyó ADMIN_PASSWORD."
 fi
 
@@ -290,14 +290,14 @@ fi
 
 
 # 2. Gestión de Identidad del Cluster
-PRIVATE_KEY=$(get_secret "/run/secrets/headscale_private_key" "HEADSCALE_PRIVATE_KEY")
+PRIVATE_KEY="$(get_secret "/run/secrets/headscale_private_key" "HEADSCALE_PRIVATE_KEY")"
 if [ -z "$PRIVATE_KEY" ]; then
-    PRIVATE_KEY=$(firebase_get "headscale_secrets/private_key/key_content")
+    PRIVATE_KEY="$(firebase_get "headscale_secrets/private_key/key_content")"
 fi
 
-NOISE_KEY=$(get_secret "/run/secrets/headscale_noise_private_key" "HEADSCALE_NOISE_PRIVATE_KEY")
+NOISE_KEY="$(get_secret "/run/secrets/headscale_noise_private_key" "HEADSCALE_NOISE_PRIVATE_KEY")"
 if [ -z "$NOISE_KEY" ]; then
-    NOISE_KEY=$(firebase_get "headscale_secrets/noise_private_key/key_content")
+    NOISE_KEY="$(firebase_get "headscale_secrets/noise_private_key/key_content")"
 fi
 
 mkdir -p /var/lib/headscale /var/run/headscale

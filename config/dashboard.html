@@ -670,16 +670,16 @@
                     const deltaBytes = lastTotalBytes > 0 && totalBytes >= lastTotalBytes ? totalBytes - lastTotalBytes : 0;
                     const deltaGB = deltaBytes / 1024 / 1024 / 1024;
 
-                    // Resilient bandwidth calculation logic using daily accumulation and shift
+                    // Resilient bandwidth calculation logic using daily accumulation based on day index
                     let lastSavedDay = localStorage.getItem('tudex_bandwidth_last_day');
-                    let currentDay = new Date().getDay().toString();
+                    let currentDay = new Date().getDay();
+                    let dayIndex = currentDay === 0 ? 6 : currentDay - 1; // Map 0 (Sun) to index 6, 1 (Mon) to index 0, etc.
 
-                    if (lastSavedDay !== currentDay) {
-                        bwHistory.shift();
-                        bwHistory.push(deltaGB);
-                        localStorage.setItem('tudex_bandwidth_last_day', currentDay);
+                    if (lastSavedDay !== currentDay.toString()) {
+                        bwHistory[dayIndex] = deltaGB;
+                        localStorage.setItem('tudex_bandwidth_last_day', currentDay.toString());
                     } else {
-                        bwHistory[bwHistory.length - 1] += deltaGB;
+                        bwHistory[dayIndex] += deltaGB;
                     }
 
                     try {
